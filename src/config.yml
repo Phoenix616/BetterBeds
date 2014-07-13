@@ -1,0 +1,12 @@
+enabled: true
+minPlayers: 2
+sleepPercentage: 0.5
+# use {player} for the sleeping players name
+# use {sleeping} for the count of the sleeping players
+# use {online} for the online playercount
+# use {percentage} for the percentage of sleeping players   
+msg:
+    sleep: "{player} schläft jetzt. {sleeping}/{online} ({percentage}%)"
+    leave: "{player} schläft nichtmehr. {sleeping}/{online} ({percentage}%)"
+    wake: "Guten Morgen Minebench!"
+# set the log level
