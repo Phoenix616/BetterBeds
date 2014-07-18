@@ -7,13 +7,16 @@ import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerBedLeaveEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,7 +25,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	private int minPlayers = 2;
 	private double sleepPercentage = 0.5;
 	private HashMap<UUID,HashSet<UUID>> asleepPlayers = new HashMap<UUID,HashSet<UUID>>();
-	private String leaveMessage = "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage$}%)";
+	private String leaveMessage = "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)";
 	private String sleepMessage = "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%)";
 	private String wakeMessage = "Wakey, wakey, rise and shine...Good Morning everyone!";
 	
@@ -112,7 +115,29 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
 		this.getLogger().log(Level.INFO, event.getPlayer().getName() + " sleeps now. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
 		
+		this.checkPlayers(world);
 		
+		
+	}
+	
+	
+	/**
+	 * Check if enough players are asleep and fast forward if so.
+	 * @param world The world to calculate with
+	 */
+	private boolean checkPlayers(World world) {		
+		
+		int calculatedPlayers = 0;
+		for(Player p: world.getPlayers()) {
+			if(!p.hasPermission("betterbeds.sleep") && !p.isSleeping()) {
+				return false;
+			}
+			if(!p.hasPermission("betterbeds.ignore"))
+				calculatedPlayers++;
+			
+		}
+		
+		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
 		if((playerList.size() >= minPlayers && playerList.size() >= calculatedPlayers * this.sleepPercentage) || (playerList.size() < minPlayers && playerList.size() >= calculatedPlayers)) {
 			this.getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
 			for(UUID playerid : playerList) {
@@ -131,10 +156,12 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			
 			if(world.isThundering())
 				world.setThundering(false);
-					
+			return true;
 		}
+		return false;
+		
 	}
-	
+
 	/**
 	 * Recalculates the number of sleeping players if a player leaves his bed
 	 * @param event PlayerBedLeaveEvent
@@ -147,14 +174,28 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	}	
 
 	/**
-	 * Recalculates the number of sleeping players if a player quits the game between 12500 time ticks and 100 time ticks
+	 * Recalculates the number of sleeping players if a player quits the game between 12500 and 100 time ticks
 	 * @param event PlayerQuitEvent
 	 */
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		World world = event.getPlayer().getWorld();
-		if(world.getTime() >= 12500 && world.getTime() <= 100) {
+		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100) {
 			this.calculateBedleave(event.getPlayer(),world);
+			this.checkPlayers(world);
+		}
+	}
+	
+	/**
+	 * Recalculates the number of sleeping players if a player changes from a normal world between 12500 and 100 time ticks
+	 * @param event PlayerChangedWorldEvent
+	 */
+	@EventHandler
+	public void onWorldChange(PlayerChangedWorldEvent event) {
+		World world = event.getFrom();
+		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100) {
+			this.calculateBedleave(event.getPlayer(),world);
+			this.checkPlayers(world);
 		}
 	}
 	
