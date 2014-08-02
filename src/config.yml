@@ -1,12 +1,14 @@
-enabled: true
+# the number of players which have to sleep independently from the percentage
+# if this is above the playercount in a world all players in the world have to sleep
 minPlayers: 2
+# the ration of players which have to sleep
+# set it to 1 or 100% to use the plugin and normal sleeping behavior but with the benefit of ignored 
 sleepPercentage: 0.5
 # use {player} for the sleeping players name
 # use {sleeping} for the count of the sleeping players
 # use {online} for the online playercount
 # use {percentage} for the percentage of sleeping players   
 msg:
-    sleep: "{player} schläft jetzt. {sleeping}/{online} ({percentage}%)"
-    leave: "{player} schläft nichtmehr. {sleeping}/{online} ({percentage}%)"
-    wake: "Guten Morgen Minebench!"
-# set the log level
+    sleep: "{player} is now sleeping. {sleeping}/{online} ({percentage}%)"
+    leave: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%)"
+    wake: "Wakey wakey, rise and shine... Good morning everyone!"

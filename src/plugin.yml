@@ -1,13 +1,13 @@
 name: BetterBeds
 main: de.themoep.BetterBeds.BetterBeds
-version: 0.3 dev 2
+version: 0.3 dev 3
 description: Better bed and sleeping handling for large servers
 authors: [Phoenix616]
 website: http://dev.bukkit.org/bukkit-plugins/betterbeds/
 commands:
    betterbedsreload:
       aliases: [bbreload]
-      description: Reloads the config from the configgile.
+      description: Reloads the config from the configfile.
       usage: /<command>
       permission: betterbeds.cmd.reload
       permission-message: You don't have the permission <permission>
