@@ -1,6 +1,6 @@
 name: BetterBeds
 main: de.themoep.BetterBeds.BetterBeds
-version: 0.3 dev 3
+version: 0.4
 description: Better bed and sleeping handling for large servers
 authors: [Phoenix616]
 website: http://dev.bukkit.org/bukkit-plugins/betterbeds/
@@ -15,6 +15,9 @@ permissions:
    betterbeds.cmd.reload:
       description: Gives permission to the reload command
       default: op
+   betterbeds.ghost:
+      description: Makes player to a ghost
+      default: none
    betterbeds.sleep:
       description: Gives user ability to sleep
       default: op
