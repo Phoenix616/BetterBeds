@@ -7,8 +7,10 @@ sleepPercentage: 0.5
 # use {player} for the sleeping players name
 # use {sleeping} for the count of the sleeping players
 # use {online} for the online playercount
-# use {percentage} for the percentage of sleeping players   
+# use {percentage} for the percentage of sleeping players 
+# use {more} to get the count of how many more players have to sleep to skip the night  
 msg:
+    ghost: "You may not rest now, there are ghosts nearby"
     sleep: "{player} is now sleeping. {sleeping}/{online} ({percentage}%)"
-    leave: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%)"
+    leave: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"
     wake: "Wakey wakey, rise and shine... Good morning everyone!"
