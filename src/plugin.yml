@@ -17,7 +17,7 @@ permissions:
       default: op
    betterbeds.ghost:
       description: Makes player to a ghost
-      default: none
+      default: false
    betterbeds.sleep:
       description: Gives user ability to sleep
       default: op
