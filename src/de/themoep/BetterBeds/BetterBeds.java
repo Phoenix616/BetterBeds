@@ -25,9 +25,10 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	private int minPlayers = 2;
 	private double sleepPercentage = 0.5;
 	private HashMap<UUID,HashSet<UUID>> asleepPlayers = new HashMap<UUID,HashSet<UUID>>();
-	private String leaveMessage = "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)";
-	private String sleepMessage = "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%)";
-	private String wakeMessage = "Wakey, wakey, rise and shine...Good Morning everyone!";
+	private String ghostMessage;
+	private String leaveMessage;
+	private String sleepMessage;
+	private String wakeMessage;
 	
 	public void onEnable() {
 		this.saveDefaultConfig();
@@ -63,14 +64,17 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			this.sleepPercentage = this.sleepPercentage / 100;
 		}
 		this.getLogger().log(Level.INFO, "Sleep Percentage: " + Double.toString(this.sleepPercentage));
-		
-		this.sleepMessage = this.getConfig().getString("msg.sleep");
+
+		this.ghostMessage = this.getConfig().getString("msg.ghost", "You may not rest now, there are ghosts nearby");
+		this.getLogger().log(Level.INFO, "Ghost Message: " + this.ghostMessage);
+
+		this.sleepMessage = this.getConfig().getString("msg.sleep", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!");
 		this.getLogger().log(Level.INFO, "Sleep Message: " + this.sleepMessage);
 		
-		this.leaveMessage = this.getConfig().getString("msg.leave");
+		this.leaveMessage = this.getConfig().getString("msg.leave", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)");
 		this.getLogger().log(Level.INFO, "Bedlaeve Message: " + this.leaveMessage);
 		
-		this.wakeMessage = this.getConfig().getString("msg.wake");	
+		this.wakeMessage = this.getConfig().getString("msg.wake", "Wakey, wakey, rise and shine...Good Morning everyone!");
 		this.getLogger().log(Level.INFO, "Wake Message: " + this.wakeMessage);	
 	}
 	
@@ -87,9 +91,9 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		
 		int calculatedPlayers = 0;
 		for(Player p: world.getPlayers()) {
-			if(!p.hasPermission("betterbeds.sleep") && !p.isSleeping() && event.getPlayer().hasPermission("betterbeds.sleep")) {
+			if(p.hasPermission("betterbeds.ghost") && !p.isSleeping() && event.getPlayer().hasPermission("betterbeds.sleep")) {
 				event.setCancelled(true);
-				event.getPlayer().sendMessage("You may not rest now, there may be ghosts nearby");
+				event.getPlayer().sendMessage(this.ghostMessage);
 				return;
 			}
 			if(!p.hasPermission("betterbeds.ignore"))
@@ -106,18 +110,17 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		playerList.add(event.getPlayer().getUniqueId());
 		
 		this.asleepPlayers.put(world.getUID(), playerList);
-		String msg = this.buildMsg(this.sleepMessage,event.getPlayer().getName(),playerList.size(),calculatedPlayers);
-		
-		for(UUID playerid : playerList) {
-			if(this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline()) 
-				this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
-		}
 
 		this.getLogger().log(Level.INFO, event.getPlayer().getName() + " sleeps now. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
-		
-		this.checkPlayers(world);
-		
-		
+
+		if(!this.checkPlayers(world)) {
+			String msg = this.buildMsg(this.sleepMessage, event.getPlayer().getName(), playerList.size(), calculatedPlayers);
+
+			for (UUID playerid : playerList) {
+				if (this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline())
+					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
+			}
+		}
 	}
 	
 	
@@ -229,9 +232,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
 			}
 		}
-		
 	}
-	
 	
 	/**
 	 * Converts eventual parameters in a message into its real values.
@@ -243,12 +244,14 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * @return String of the converted message
 	 */
 	private String buildMsg(String msg, String playername, int sleeping, int online) {
-		if(playername != null) 
-			msg = msg.replaceAll("{player}", ChatColor.RED + playername + ChatColor.GOLD);
-		msg = msg.replaceAll("{sleeping}", sleeping + "");
-		msg = msg.replaceAll("{online}", online + "");
-		float percentage = (float) Math.round( ( (double) sleeping / online * 100 * 100 ) / 100 );
-		msg = msg.replaceAll("{percentage}", String.format("%.2f", percentage));
+		if (playername != null)
+			msg = msg.replace("{player}", ChatColor.RED + playername + ChatColor.GOLD);
+		msg = msg.replace("{sleeping}", sleeping + "");
+		msg = msg.replace("{online}", online + "");
+		float percentage = (float) Math.round(((double) sleeping / online * 100 * 100) / 100 );
+		msg = msg.replace("{percentage}", String.format("%.2f", percentage));
+		int more = (int) (Math.ceil(online * this.sleepPercentage) - sleeping);
+		msg = msg.replace("{more}", Integer.toString(more));
 		return msg;
 	}
 }
