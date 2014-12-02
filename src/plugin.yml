@@ -1,6 +1,6 @@
 name: BetterBeds
 main: de.themoep.BetterBeds.BetterBeds
-version: 0.4
+version: 0.4.1
 description: Better bed and sleeping handling for large servers
 authors: [Phoenix616]
 website: http://dev.bukkit.org/bukkit-plugins/betterbeds/

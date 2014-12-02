@@ -12,7 +12,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerBedLeaveEvent;
@@ -32,7 +31,9 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	
 	public void onEnable() {
 		this.saveDefaultConfig();
-		this.loadConfig();	
+		this.loadConfig();
+
+		this.getServer().getPluginManager().registerEvents(this, this);
 		
 	}
 
@@ -43,6 +44,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		if(cmd.getName().equalsIgnoreCase("betterbedsreload") || cmd.getName().equalsIgnoreCase("bbreload")) {
 			sender.sendMessage("[BetterBeds] Reloading Config");
 			this.loadConfig();
+			return true;
 		}
 		return false;		
 	}
@@ -85,15 +87,17 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerBedEnter(PlayerBedEnterEvent event) {
-		if(event.isCancelled() || event.getPlayer().hasPermission("betterbeds.ignore")) return;
+		if(event.isCancelled() || event.getPlayer().hasPermission("betterbeds.ignore") || !event.getPlayer().hasPermission("betterbeds.sleep"))
+			return;
 
 		World world = event.getBed().getWorld();
 		
 		int calculatedPlayers = 0;
 		for(Player p: world.getPlayers()) {
-			if(p.hasPermission("betterbeds.ghost") && !p.isSleeping() && event.getPlayer().hasPermission("betterbeds.sleep")) {
+			if(p != event.getPlayer() && p.hasPermission("betterbeds.ghost") && !p.isSleeping()) {
 				event.setCancelled(true);
 				event.getPlayer().sendMessage(this.ghostMessage);
+				this.getLogger().info("There is a ghost online, players can't sleep now!");
 				return;
 			}
 			if(!p.hasPermission("betterbeds.ignore"))
@@ -103,9 +107,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		
 		HashSet<UUID> playerList = new HashSet<UUID>();
 		
-		if(this.asleepPlayers.containsKey(world.getUID())) {
+		if(this.asleepPlayers.containsKey(world.getUID()))
 			playerList = this.asleepPlayers.get(world.getUID());
-		}
 		
 		playerList.add(event.getPlayer().getUniqueId());
 		
@@ -113,33 +116,33 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
 		this.getLogger().log(Level.INFO, event.getPlayer().getName() + " sleeps now. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
 
-		if(!this.checkPlayers(world)) {
+		if(!this.checkPlayers(world, false)) {
 			String msg = this.buildMsg(this.sleepMessage, event.getPlayer().getName(), playerList.size(), calculatedPlayers);
 
-			for (UUID playerid : playerList) {
+			for (UUID playerid : playerList)
 				if (this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline())
 					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
-			}
 		}
 	}
-	
-	
+
 	/**
 	 * Check if enough players are asleep and fast forward if so.
 	 * @param world The world to calculate with
+	 * @param playerQuit
 	 */
-	private boolean checkPlayers(World world) {		
-		
-		int calculatedPlayers = 0;
+	private boolean checkPlayers(World world, boolean playerQuit) {
+
+		if(!this.asleepPlayers.containsKey(world.getUID()))
+			return false;
+
+		int calculatedPlayers = (playerQuit) ? -1 : 0;
 		for(Player p: world.getPlayers()) {
-			if(!p.hasPermission("betterbeds.sleep") && !p.isSleeping()) {
+			if(p.hasPermission("betterbeds.ghost") && !p.isSleeping())
 				return false;
-			}
-			if(!p.hasPermission("betterbeds.ignore"))
+			if(p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore"))
 				calculatedPlayers++;
-			
 		}
-		
+
 		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
 		if((playerList.size() >= minPlayers && playerList.size() >= calculatedPlayers * this.sleepPercentage) || (playerList.size() < minPlayers && playerList.size() >= calculatedPlayers)) {
 			this.getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
@@ -171,9 +174,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerBedLeave(PlayerBedLeaveEvent event) {
-		World world = event.getBed().getWorld();
-
-		this.calculateBedleave(event.getPlayer(),world);
+		this.calculateBedleave(event.getPlayer(), event.getBed().getWorld());
 	}	
 
 	/**
@@ -182,11 +183,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {
-		World world = event.getPlayer().getWorld();
-		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100) {
-			this.calculateBedleave(event.getPlayer(),world);
-			this.checkPlayers(world);
-		}
+		this.calculateBedleave(event.getPlayer(), event.getPlayer().getWorld());
+		this.checkPlayers(event.getPlayer().getWorld(), true);
 	}
 	
 	/**
@@ -195,13 +193,10 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onWorldChange(PlayerChangedWorldEvent event) {
-		World world = event.getFrom();
-		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100) {
-			this.calculateBedleave(event.getPlayer(),world);
-			this.checkPlayers(world);
-		}
+		this.calculateBedleave(event.getPlayer(), event.getFrom());
+		this.checkPlayers(event.getFrom(), false);
 	}
-	
+
 	/**
 	 * Calculates what happens when a player leaves the bed. 
 	 * 
@@ -209,28 +204,31 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * @param world The world the bed was in (because it's possible the player isn't there anymore when he existed it)
 	 */
 	private void calculateBedleave(Player player, World world) {
+
+		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100)
+			return;
+		if(!this.asleepPlayers.containsKey(world.getUID()))
+			return;
 		
-		if(!this.asleepPlayers.containsKey(world.getUID()) || player.hasPermission("betterbeds.ignore")) return;		
-		
-		if(this.asleepPlayers.get(world.getUID()).contains(player.getUniqueId())) {			
+		if(this.asleepPlayers.get(world.getUID()).contains(player.getUniqueId())) {
 			int calculatedPlayers = 0;
-			for(Player p: world.getPlayers()) {
+			for(Player p: world.getPlayers())
 				if(!p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep"))
-					calculatedPlayers++;			
-			}
+					calculatedPlayers++;
 
 			this.asleepPlayers.get(world.getUID()).remove(player.getUniqueId());
 	
 			HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
 	
-			this.getLogger().log(Level.INFO, "[BetterBeds] " + player.getName() + " is not sleeping anymore. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
+			this.getLogger().log(Level.INFO, player.getName() + " is not sleeping anymore. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
 			
 			String msg =  this.buildMsg(this.leaveMessage,player.getName(),playerList.size(),calculatedPlayers);			
 			
-			for(UUID playerid : this.asleepPlayers.get(world.getUID())) {
+			for(UUID playerid : this.asleepPlayers.get(world.getUID()))
 				if(this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline()) 
 					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
-			}
+
+			this.checkPlayers(world, false);
 		}
 	}
 	
