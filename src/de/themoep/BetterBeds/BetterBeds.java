@@ -23,18 +23,22 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	
 	private int minPlayers = 2;
 	private double sleepPercentage = 0.5;
+	private int nightSpeed = 0;
 	private HashMap<UUID,HashSet<UUID>> asleepPlayers = new HashMap<UUID,HashSet<UUID>>();
 	private String ghostMessage;
 	private String leaveMessage;
 	private String sleepMessage;
 	private String wakeMessage;
+	private String notifyMessage;
+	private String notifyOnSingleMessage;
+	private int transitionTask = 0;
+	private HashMap<UUID,String> nameOfLastPlayerToEnterBed = new HashMap<UUID,String>(); 
 	
 	public void onEnable() {
 		this.saveDefaultConfig();
 		this.loadConfig();
 
 		this.getServer().getPluginManager().registerEvents(this, this);
-		
 	}
 
 	/**
@@ -55,29 +59,21 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	private void loadConfig() {
 		this.reloadConfig();
 		this.minPlayers = this.getConfig().getInt("minPlayers");
-		this.getLogger().log(Level.INFO, "Min. Players: " + Integer.toString(this.minPlayers));
 		try {
 			this.sleepPercentage = Double.parseDouble(this.getConfig().getString("sleepPercentage").replaceAll(" ", "").replace("%", ""));
 		} catch (NumberFormatException e) {
 			this.getLogger().log(Level.WARNING,"You have an Error in your config at the sleepPercentage-node! Using the default now: " + this.sleepPercentage);
 		} 
-
 		if (this.sleepPercentage > 1) {
 			this.sleepPercentage = this.sleepPercentage / 100;
 		}
-		this.getLogger().log(Level.INFO, "Sleep Percentage: " + Double.toString(this.sleepPercentage));
-
+		this.nightSpeed = this.getConfig().getInt("nightSpeed", 300);
 		this.ghostMessage = this.getConfig().getString("msg.ghost", "You may not rest now, there are ghosts nearby");
-		this.getLogger().log(Level.INFO, "Ghost Message: " + this.ghostMessage);
-
 		this.sleepMessage = this.getConfig().getString("msg.sleep", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!");
-		this.getLogger().log(Level.INFO, "Sleep Message: " + this.sleepMessage);
-		
 		this.leaveMessage = this.getConfig().getString("msg.leave", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)");
-		this.getLogger().log(Level.INFO, "Bedlaeve Message: " + this.leaveMessage);
-		
 		this.wakeMessage = this.getConfig().getString("msg.wake", "Wakey, wakey, rise and shine...Good Morning everyone!");
-		this.getLogger().log(Level.INFO, "Wake Message: " + this.wakeMessage);	
+		this.notifyMessage = this.getConfig().getString("msg.notify", "{sleeping} players have gone to bed. Skipping the night!");
+		this.notifyOnSingleMessage = this.getConfig().getString("msg.notifyOnSingle", "{player} has gone to bed. Skipping the night!");
 	}
 	
 	/**
@@ -87,11 +83,13 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerBedEnter(PlayerBedEnterEvent event) {
-		if(event.isCancelled() || event.getPlayer().hasPermission("betterbeds.ignore") || !event.getPlayer().hasPermission("betterbeds.sleep"))
+		if(event.isCancelled() 
+				|| event.getPlayer().hasPermission("betterbeds.ignore") 
+				|| !event.getPlayer().hasPermission("betterbeds.sleep")
+				|| this.transitionTask != 0)
 			return;
 
 		World world = event.getBed().getWorld();
-		
 		int calculatedPlayers = 0;
 		for(Player p: world.getPlayers()) {
 			if(p != event.getPlayer() && p.hasPermission("betterbeds.ghost") && !p.isSleeping()) {
@@ -102,7 +100,6 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			}
 			if(!p.hasPermission("betterbeds.ignore"))
 				calculatedPlayers++;
-			
 		}
 		
 		HashSet<UUID> playerList = new HashSet<UUID>();
@@ -113,12 +110,12 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		playerList.add(event.getPlayer().getUniqueId());
 		
 		this.asleepPlayers.put(world.getUID(), playerList);
-
+		nameOfLastPlayerToEnterBed.put(world.getUID(), event.getPlayer().getName());
+		
 		this.getLogger().log(Level.INFO, event.getPlayer().getName() + " sleeps now. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
 
 		if(!this.checkPlayers(world, false)) {
 			String msg = this.buildMsg(this.sleepMessage, event.getPlayer().getName(), playerList.size(), calculatedPlayers);
-
 			for (UUID playerid : playerList)
 				if (this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline())
 					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
@@ -126,12 +123,11 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Check if enough players are asleep and fast forward if so.
+	 * Check if enough players are asleep.
 	 * @param world The world to calculate with
 	 * @param playerQuit
 	 */
-	private boolean checkPlayers(World world, boolean playerQuit) {
-
+	public boolean isPlayerLimitSatisfied(World world, boolean playerQuit) {
 		if(!this.asleepPlayers.containsKey(world.getUID()))
 			return false;
 
@@ -141,33 +137,92 @@ public class BetterBeds extends JavaPlugin implements Listener {
 				return false;
 			if(p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore"))
 				calculatedPlayers++;
-		}
-
+		}		
 		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-		if((playerList.size() >= minPlayers && playerList.size() >= calculatedPlayers * this.sleepPercentage) || (playerList.size() < minPlayers && playerList.size() >= calculatedPlayers)) {
-			this.getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
-			for(UUID playerid : playerList) {
-				if(this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline()) {
-					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + this.wakeMessage);
-				}
-			}
-			
-			playerList.clear();
+		return (playerList.size() >= minPlayers	&& playerList.size() >= calculatedPlayers * this.sleepPercentage) 
+				|| (playerList.size() < minPlayers && playerList.size() >= calculatedPlayers);
+	}
+	
+	/**
+	 * Check if enough players are asleep and fast forward if so.
+	 * @param world The world to calculate with
+	 * @param playerQuit
+	 */
+	private boolean checkPlayers(final World world, boolean playerQuit) {
+		if (isPlayerLimitSatisfied(world, playerQuit)) {
+			if (this.nightSpeed == 0) {
+				this.getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
+				notifyPlayers(world);
+				setWorldToMorning(world);
+			} else {
+				if (transitionTask != 0)
+					return false;
+				
+				notifyPlayers(world);
 
-			this.asleepPlayers.put(world.getUID(), playerList);
-			
-			world.setTime(23450);
-			if(world.hasStorm())
-				world.setStorm(false);
-			
-			if(world.isThundering())
-				world.setThundering(false);
+				this.getLogger().log(Level.INFO, "Timelapsing " + nightSpeed + "x until dawn in world " + world.getName());
+				transitionTask = this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
+					public void run() {
+						if (!isPlayerLimitSatisfied(world, false)) {
+							getServer().getScheduler().cancelTask(transitionTask);
+							transitionTask = 0;
+							return;
+						}
+						long currentTime = world.getTime();
+						long newTime = currentTime + nightSpeed; 
+						if (newTime >= 23450) {
+							getServer().getScheduler().cancelTask(transitionTask);
+							transitionTask = 0;
+							setWorldToMorning(world);
+						} else {
+							world.setTime(currentTime + nightSpeed);
+						}
+					}
+				}, 1L, 1L);
+			}
 			return true;
 		}
 		return false;
-		
 	}
 
+	/**
+	 * Notifies all the players within a world of skipping the night
+	 * @param world
+	 */
+	private void notifyPlayers(World world) {
+		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
+		String msg = buildMsg((playerList.size() > 1) ? this.notifyMessage : this.notifyOnSingleMessage,
+				nameOfLastPlayerToEnterBed.get(world.getUID()),
+				playerList.size(), 
+				countQualifyingPlayers(world));
+		for (Player p : world.getPlayers()) {
+			p.sendMessage(ChatColor.GOLD + msg);
+		}
+	}
+
+	/**
+	 * Resets the world's climate and the list of sleeping players.
+	 * @param world
+	 */
+	public void setWorldToMorning(World world)
+	{
+		world.setTime(23450);
+		if(world.hasStorm())
+			world.setStorm(false);
+		
+		if(world.isThundering())
+			world.setThundering(false);
+
+		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
+		for(UUID playerid : playerList) {
+			if(this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline()) {
+				this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + this.wakeMessage);
+			}
+		}
+		
+		playerList.clear();
+	}
+	
 	/**
 	 * Recalculates the number of sleeping players if a player leaves his bed
 	 * @param event PlayerBedLeaveEvent
@@ -211,10 +266,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			return;
 		
 		if(this.asleepPlayers.get(world.getUID()).contains(player.getUniqueId())) {
-			int calculatedPlayers = 0;
-			for(Player p: world.getPlayers())
-				if(!p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep"))
-					calculatedPlayers++;
+			int calculatedPlayers = countQualifyingPlayers(world);
 
 			this.asleepPlayers.get(world.getUID()).remove(player.getUniqueId());
 	
@@ -232,6 +284,14 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		}
 	}
 	
+	private int countQualifyingPlayers(World world) {
+		int calculatedPlayers = 0;
+		for(Player p: world.getPlayers())
+			if(!p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep"))
+				calculatedPlayers ++;
+		return calculatedPlayers;
+	}
+
 	/**
 	 * Converts eventual parameters in a message into its real values.
 	 * TODO: Make it so that not every parameter is required!
