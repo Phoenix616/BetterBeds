@@ -78,7 +78,6 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	
 	/**
 	 * Calculate if number of sleeping players is enough to fast forward the night. 
-	 * TODO: The calculation should really be its own method because we don't yet check if there are enough players sleeping when some players quit the game/change the world.
 	 * @param event PlayerBedEnterEvent
 	 */
 	@EventHandler
