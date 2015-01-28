@@ -127,7 +127,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * @param playerQuit
 	 */
 	public boolean isPlayerLimitSatisfied(World world, boolean playerQuit) {
-		if(!this.asleepPlayers.containsKey(world.getUID()))
+		if(!this.asleepPlayers.containsKey(world.getUID()) || this.asleepPlayers.get(world.getUID()).size() == 0)
 			return false;
 
 		int calculatedPlayers = (playerQuit) ? -1 : 0;
@@ -237,8 +237,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {
-		this.calculateBedleave(event.getPlayer(), event.getPlayer().getWorld());
-		this.checkPlayers(event.getPlayer().getWorld(), true);
+		if(!this.calculateBedleave(event.getPlayer(), event.getPlayer().getWorld()))
+			this.checkPlayers(event.getPlayer().getWorld(), true);
 	}
 	
 	/**
@@ -247,22 +247,22 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	@EventHandler
 	public void onWorldChange(PlayerChangedWorldEvent event) {
-		this.calculateBedleave(event.getPlayer(), event.getFrom());
-		this.checkPlayers(event.getFrom(), false);
+		if(!this.calculateBedleave(event.getPlayer(), event.getFrom()))
+			this.checkPlayers(event.getFrom(), false);
 	}
 
 	/**
 	 * Calculates what happens when a player leaves the bed. 
-	 * 
 	 * @param player The player who left the bed
 	 * @param world The world the bed was in (because it's possible the player isn't there anymore when he existed it)
+	 * @return boolean - True if we don't need to check the players anymore, False if didn't get checked if we should fast forward
 	 */
-	private void calculateBedleave(Player player, World world) {
+	private boolean calculateBedleave(Player player, World world) {
 
 		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100)
-			return;
+			return true;
 		if(!this.asleepPlayers.containsKey(world.getUID()))
-			return;
+			return true;
 		
 		if(this.asleepPlayers.get(world.getUID()).contains(player.getUniqueId())) {
 			int calculatedPlayers = countQualifyingPlayers(world);
@@ -280,7 +280,9 @@ public class BetterBeds extends JavaPlugin implements Listener {
 					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
 
 			this.checkPlayers(world, false);
+			return true;
 		}
+		return false;
 	}
 	
 	private int countQualifyingPlayers(World world) {
