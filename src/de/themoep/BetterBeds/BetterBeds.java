@@ -284,7 +284,12 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
+	/**
+	 * Count all the players that matter
+	 * @param world The world to count in
+	 * @return int - The count of the players
+	 */
 	private int countQualifyingPlayers(World world) {
 		int calculatedPlayers = 0;
 		for(Player p: world.getPlayers())
