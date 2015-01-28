@@ -66,12 +66,27 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			this.sleepPercentage = this.sleepPercentage / 100;
 		}
 		this.nightSpeed = this.getConfig().getInt("nightSpeed", 300);
-		this.ghostMessage = this.getConfig().getString("msg.ghost", "You may not rest now, there are ghosts nearby");
-		this.sleepMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.sleep.type", "SLEEPING")), this.getConfig().getString("msg.sleep.text", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"));
-		this.leaveMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.leave.type", "SLEEPING")), this.getConfig().getString("msg.leave.text", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)"));
-		this.wakeMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.wake.type", "WORLD")), this.getConfig().getString("msg.wake.text", "Wakey, wakey, rise and shine...Good Morning everyone!"));
-		this.notifyMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.notify.type", "SLEEPING")), this.getConfig().getString("msg.notify.text", "{sleeping} players have gone to bed. Skipping the night!"));
-		this.notifyOnSingleMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.notifyOnSingle.type", "SLEEPING")), this.getConfig().getString("msg.notifyOnSingle.text", "{player} has gone to bed. Skipping the night!"));
+		this.ghostMessage = ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.ghost", "You may not rest now, there are ghosts nearby"));
+		this.sleepMessage = new NotificationMessage(
+				NotificationType.valueOf(this.getConfig().getString("msg.sleep.type", "SLEEPING")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.sleep.text", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"))
+		);
+		this.leaveMessage = new NotificationMessage(
+				NotificationType.valueOf(this.getConfig().getString("msg.leave.type", "SLEEPING")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.leave.text", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)"))
+		);
+		this.wakeMessage = new NotificationMessage(
+				NotificationType.valueOf(this.getConfig().getString("msg.wake.type", "WORLD")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.wake.text", "Wakey, wakey, rise and shine...Good Morning everyone!"))
+		);
+		this.notifyMessage = new NotificationMessage(
+				NotificationType.valueOf(this.getConfig().getString("msg.notify.type", "SLEEPING")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notify.text", "{sleeping} players have gone to bed. Skipping the night!"))
+		);
+		this.notifyOnSingleMessage = new NotificationMessage(
+				NotificationType.valueOf(this.getConfig().getString("msg.notifyOnSingle.type", "SLEEPING")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notifyOnSingle.text", "{player} has gone to bed. Skipping the night!"))
+		);
 	}
 	
 	/**
