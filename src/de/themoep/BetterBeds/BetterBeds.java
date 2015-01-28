@@ -1,8 +1,6 @@
 package de.themoep.BetterBeds;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
@@ -26,11 +24,11 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	private int nightSpeed = 0;
 	private HashMap<UUID,HashSet<UUID>> asleepPlayers = new HashMap<UUID,HashSet<UUID>>();
 	private String ghostMessage;
-	private String leaveMessage;
-	private String sleepMessage;
-	private String wakeMessage;
-	private String notifyMessage;
-	private String notifyOnSingleMessage;
+	private NotificationMessage leaveMessage;
+	private NotificationMessage sleepMessage;
+	private NotificationMessage wakeMessage;
+	private NotificationMessage notifyMessage;
+	private NotificationMessage notifyOnSingleMessage;
 	private int transitionTask = 0;
 	private HashMap<UUID,String> nameOfLastPlayerToEnterBed = new HashMap<UUID,String>(); 
 	
@@ -69,11 +67,11 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		}
 		this.nightSpeed = this.getConfig().getInt("nightSpeed", 300);
 		this.ghostMessage = this.getConfig().getString("msg.ghost", "You may not rest now, there are ghosts nearby");
-		this.sleepMessage = this.getConfig().getString("msg.sleep", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!");
-		this.leaveMessage = this.getConfig().getString("msg.leave", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)");
-		this.wakeMessage = this.getConfig().getString("msg.wake", "Wakey, wakey, rise and shine...Good Morning everyone!");
-		this.notifyMessage = this.getConfig().getString("msg.notify", "{sleeping} players have gone to bed. Skipping the night!");
-		this.notifyOnSingleMessage = this.getConfig().getString("msg.notifyOnSingle", "{player} has gone to bed. Skipping the night!");
+		this.sleepMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.sleep.type", "SLEEPING")), this.getConfig().getString("msg.sleep.text", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"));
+		this.leaveMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.leave.type", "SLEEPING")), this.getConfig().getString("msg.leave.text", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)"));
+		this.wakeMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.wake.type", "WORLD")), this.getConfig().getString("msg.wake.text", "Wakey, wakey, rise and shine...Good Morning everyone!"));
+		this.notifyMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.notify.type", "SLEEPING")), this.getConfig().getString("msg.notify.text", "{sleeping} players have gone to bed. Skipping the night!"));
+		this.notifyOnSingleMessage = new NotificationMessage(NotificationType.valueOf(this.getConfig().getString("msg.notifyOnSingle.type", "SLEEPING")), this.getConfig().getString("msg.notifyOnSingle.text", "{player} has gone to bed. Skipping the night!"));
 	}
 	
 	/**
@@ -113,12 +111,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		
 		this.getLogger().log(Level.INFO, event.getPlayer().getName() + " sleeps now. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
 
-		if(!this.checkPlayers(world, false)) {
-			String msg = this.buildMsg(this.sleepMessage, event.getPlayer().getName(), playerList.size(), calculatedPlayers);
-			for (UUID playerid : playerList)
-				if (this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline())
-					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
-		}
+		if(!this.checkPlayers(world, false))
+			notifyPlayers(world, this.sleepMessage);
 	}
 
 	/**
@@ -151,13 +145,13 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		if (isPlayerLimitSatisfied(world, playerQuit)) {
 			if (this.nightSpeed == 0) {
 				this.getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
-				notifyPlayers(world);
+				notifyPlayers(world, (this.asleepPlayers.get(world.getUID()).size() > 1) ? this.notifyMessage : this.notifyOnSingleMessage);
 				setWorldToMorning(world);
 			} else {
 				if (transitionTask != 0)
 					return false;
 				
-				notifyPlayers(world);
+				notifyPlayers(world, (this.asleepPlayers.get(world.getUID()).size() > 1) ? this.notifyMessage : this.notifyOnSingleMessage);
 
 				this.getLogger().log(Level.INFO, "Timelapsing " + nightSpeed + "x until dawn in world " + world.getName());
 				transitionTask = this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
@@ -188,13 +182,22 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * Notifies all the players within a world of skipping the night
 	 * @param world
 	 */
-	private void notifyPlayers(World world) {
+	private void notifyPlayers(World world, NotificationMessage notifymsg) {
 		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-		String msg = buildMsg((playerList.size() > 1) ? this.notifyMessage : this.notifyOnSingleMessage,
+		String msg = buildMsg(notifymsg.getText(),
 				nameOfLastPlayerToEnterBed.get(world.getUID()),
 				playerList.size(), 
 				countQualifyingPlayers(world));
-		for (Player p : world.getPlayers()) {
+		List<Player> pl = new ArrayList<Player>();
+		if(notifymsg.getType() == NotificationType.WORLD)
+			pl = world.getPlayers();
+		else if(notifymsg.getType() == NotificationType.SERVER)
+			pl = new ArrayList<Player>(this.getServer().getOnlinePlayers());
+		else
+			for(Player p : this.getServer().getOnlinePlayers())
+				if(playerList.contains(p.getUniqueId()))
+					pl.add(p);
+		for (Player p : pl) {
 			p.sendMessage(ChatColor.GOLD + msg);
 		}
 	}
@@ -212,14 +215,9 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		if(world.isThundering())
 			world.setThundering(false);
 
-		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-		for(UUID playerid : playerList) {
-			if(this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline()) {
-				this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + this.wakeMessage);
-			}
-		}
-		
-		playerList.clear();
+		notifyPlayers(world, this.wakeMessage);
+
+		this.asleepPlayers.get(world.getUID()).clear();
 	}
 	
 	/**
@@ -272,12 +270,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
 	
 			this.getLogger().log(Level.INFO, player.getName() + " is not sleeping anymore. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
-			
-			String msg =  this.buildMsg(this.leaveMessage,player.getName(),playerList.size(),calculatedPlayers);			
-			
-			for(UUID playerid : this.asleepPlayers.get(world.getUID()))
-				if(this.getServer().getPlayer(playerid) != null && this.getServer().getPlayer(playerid).isOnline()) 
-					this.getServer().getPlayer(playerid).sendMessage(ChatColor.GOLD + msg);
+
+			notifyPlayers(world, this.leaveMessage);
 
 			this.checkPlayers(world, false);
 			return true;

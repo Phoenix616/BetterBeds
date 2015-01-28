@@ -13,8 +13,18 @@ nightSpeed: 300
 # use {more} to get the count of how many more players have to sleep to skip the night  
 msg:
     ghost: "You may not rest now, there are ghosts nearby"
-    sleep: "{player} is now sleeping. {sleeping}/{online} ({percentage}%)"
-    leave: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"
-    wake: "Wakey wakey, rise and shine... Good morning everyone!"
-    notify: "{sleeping} players have gone to bed. Skipping the night!"
-    notifyOnSingle: "{player} has gone to bed. Skipping the night!"
+    sleep:
+        text: "{player} is now sleeping. {sleeping}/{online} ({percentage}%)"
+        type: "SLEEPING"
+    leave:
+        text: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"
+        type: "SLEEPING"
+    wake:
+        text: "Wakey wakey, rise and shine... Good morning everyone!"
+        type: "WORLD"
+    notify:
+        text: "{sleeping} players have gone to bed. Skipping the night!"
+        type: "SLEEPING"
+    notifyOnSingle:
+        text: "{player} has gone to bed. Skipping the night!"
+        type: "SLEEPING"
