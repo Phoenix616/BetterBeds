@@ -10,7 +10,14 @@ nightSpeed: 300
 # use {sleeping} for the count of the sleeping players
 # use {online} for the online playercount
 # use {percentage} for the percentage of sleeping players 
-# use {more} to get the count of how many more players have to sleep to skip the night  
+# use {more} to get the count of how many more players have to sleep to skip the night
+#
+# The Type defines who should get the message.
+# Possibly values:
+#   NOONE - Don't display the message to anyone
+#   SLEEPING - Only players who lye in a bed
+#   WORLD - Every player who is in the same world
+#   SERVER - Every player on the server
 msg:
     ghost: "You may not rest now, there are ghosts nearby"
     sleep:

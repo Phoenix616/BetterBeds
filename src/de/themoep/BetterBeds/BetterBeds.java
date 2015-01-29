@@ -198,22 +198,24 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * @param world
 	 */
 	private void notifyPlayers(World world, NotificationMessage notifymsg) {
-		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-		String msg = buildMsg(notifymsg.getText(),
-				nameOfLastPlayerToEnterBed.get(world.getUID()),
-				playerList.size(), 
-				countQualifyingPlayers(world));
-		List<Player> pl = new ArrayList<Player>();
-		if(notifymsg.getType() == NotificationType.WORLD)
-			pl = world.getPlayers();
-		else if(notifymsg.getType() == NotificationType.SERVER)
-			pl = new ArrayList<Player>(this.getServer().getOnlinePlayers());
-		else
-			for(Player p : this.getServer().getOnlinePlayers())
-				if(playerList.contains(p.getUniqueId()))
-					pl.add(p);
-		for (Player p : pl) {
-			p.sendMessage(ChatColor.GOLD + msg);
+		if(notifymsg.getType() != NotificationType.NOONE) {
+			HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
+			String msg = buildMsg(notifymsg.getText(),
+					nameOfLastPlayerToEnterBed.get(world.getUID()),
+					playerList.size(),
+					countQualifyingPlayers(world));
+			List<Player> pl = new ArrayList<Player>();
+			if (notifymsg.getType() == NotificationType.WORLD)
+				pl = world.getPlayers();
+			else if (notifymsg.getType() == NotificationType.SERVER)
+				pl = new ArrayList<Player>(this.getServer().getOnlinePlayers());
+			else
+				for (Player p : this.getServer().getOnlinePlayers())
+					if (playerList.contains(p.getUniqueId()))
+						pl.add(p);
+			for (Player p : pl) {
+				p.sendMessage(ChatColor.GOLD + msg);
+			}
 		}
 	}
 
