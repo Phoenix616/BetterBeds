@@ -1,0 +1,37 @@
+# the number of players which have to sleep independently from the percentage
+# if this is above the playercount in a world all players in the world have to sleep
+minPlayers: 2
+# the ration of players which have to sleep
+# set it to 1 or 100% to use the plugin and normal sleeping behavior but with the benefit of ignored 
+sleepPercentage: 0.5
+# Speed of time for a smoother transition to the morning. Set to 0 to disable this feature. 
+nightSpeed: 300  
+# use {player} for the sleeping players name
+# use {sleeping} for the count of the sleeping players
+# use {online} for the online playercount
+# use {percentage} for the percentage of sleeping players 
+# use {more} to get the count of how many more players have to sleep to skip the night
+#
+# The Type defines who should get the message.
+# Possibly values:
+#   NOONE - Don't display the message to anyone
+#   SLEEPING - Only players who lye in a bed
+#   WORLD - Every player who is in the same world
+#   SERVER - Every player on the server
+msg:
+    ghost: "You may not rest now, there are ghosts nearby"
+    sleep:
+        text: "{player} is now sleeping. {sleeping}/{online} ({percentage}%)"
+        type: "SLEEPING"
+    leave:
+        text: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"
+        type: "SLEEPING"
+    wake:
+        text: "Wakey wakey, rise and shine... Good morning everyone!"
+        type: "WORLD"
+    notify:
+        text: "{sleeping} players have gone to bed. Skipping the night!"
+        type: "SLEEPING"
+    notifyOnSingle:
+        text: "{player} has gone to bed. Skipping the night!"
+        type: "SLEEPING"
