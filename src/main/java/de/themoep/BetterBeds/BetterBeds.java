@@ -103,8 +103,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
 		World world = event.getBed().getWorld();
 		int calculatedPlayers = 0;
-		for(Player p: world.getPlayers()) {
-			if(p != event.getPlayer() && p.hasPermission("betterbeds.ghost") && !p.isSleeping()) {
+		for(Player p : getServer().getOnlinePlayers()) {
+			if(world.equals(p.getWorld()) && p != event.getPlayer() && p.hasPermission("betterbeds.ghost") && !p.isSleeping()) {
 				event.setCancelled(true);
 				event.getPlayer().sendMessage(this.ghostMessage);
 				this.getLogger().info("There is a ghost online, players can't sleep now!");
@@ -140,11 +140,13 @@ public class BetterBeds extends JavaPlugin implements Listener {
 			return false;
 
 		int calculatedPlayers = (playerQuit) ? -1 : 0;
-		for(Player p: world.getPlayers()) {
-			if(p.hasPermission("betterbeds.ghost") && !p.isSleeping())
-				return false;
-			if(p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore"))
-				calculatedPlayers++;
+		for(Player p : getServer().getOnlinePlayers()) {
+            if(world.equals(p.getWorld())) {
+                if (p.hasPermission("betterbeds.ghost") && !p.isSleeping())
+                    return false;
+                if (p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore"))
+                    calculatedPlayers++;
+            }
 		}		
 		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
 		return (playerList.size() >= minPlayers	&& playerList.size() >= calculatedPlayers * this.sleepPercentage) 
@@ -206,7 +208,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 					countQualifyingPlayers(world));
 			List<Player> pl = new ArrayList<Player>();
 			if (notifymsg.getType() == NotificationType.WORLD)
-				pl = world.getPlayers();
+				pl = getPlayers(world);
 			else if (notifymsg.getType() == NotificationType.SERVER)
 				pl = new ArrayList<Player>(this.getServer().getOnlinePlayers());
 			else
@@ -303,8 +305,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	private int countQualifyingPlayers(World world) {
 		int calculatedPlayers = 0;
-		for(Player p: world.getPlayers())
-			if(!p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep"))
+		for(Player p : getServer().getOnlinePlayers())
+			if(world.equals(p.getWorld()) && !p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep"))
 				calculatedPlayers ++;
 		return calculatedPlayers;
 	}
@@ -329,4 +331,14 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		msg = msg.replace("{more}", Integer.toString(more));
 		return msg;
 	}
+    
+    private List<Player> getPlayers(World world) {
+        List<Player> pList = new ArrayList<Player>();
+        for(Player p : getServer().getOnlinePlayers()) {
+            if(world.equals(p.getWorld())) {
+                pList.add(p);
+            }
+        }
+        return pList;
+    }
 }
