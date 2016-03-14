@@ -65,27 +65,27 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		if (this.sleepPercentage > 1) {
 			this.sleepPercentage = this.sleepPercentage / 100;
 		}
-		this.nightSpeed = this.getConfig().getInt("nightSpeed", 300);
-		this.ghostMessage = ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.ghost", "You may not rest now, there are ghosts nearby"));
+		this.nightSpeed = this.getConfig().getInt("nightSpeed");
+		this.ghostMessage = ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.ghost"));
 		this.sleepMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.sleep.type", "SLEEPING")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.sleep.text", "Player {player} is now sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"))
+				NotificationType.valueOf(this.getConfig().getString("msg.sleep.type")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.sleep.text"))
 		);
 		this.leaveMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.leave.type", "SLEEPING")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.leave.text", "Player {player} is no longer sleeping. {sleeping}/{online} ({percentage}%)"))
+				NotificationType.valueOf(this.getConfig().getString("msg.leave.type")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.leave.text"))
 		);
 		this.wakeMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.wake.type", "WORLD")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.wake.text", "Wakey, wakey, rise and shine...Good Morning everyone!"))
+				NotificationType.valueOf(this.getConfig().getString("msg.wake.type")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.wake.text"))
 		);
 		this.notifyMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.notify.type", "SLEEPING")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notify.text", "{sleeping} players have gone to bed. Skipping the night!"))
+				NotificationType.valueOf(this.getConfig().getString("msg.notify.type")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notify.text"))
 		);
 		this.notifyOnSingleMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.notifyOnSingle.type", "SLEEPING")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notifyOnSingle.text", "{player} has gone to bed. Skipping the night!"))
+				NotificationType.valueOf(this.getConfig().getString("msg.notifyOnSingle.type")),
+				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notifyOnSingle.text"))
 		);
 	}
 	
