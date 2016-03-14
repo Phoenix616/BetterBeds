@@ -19,19 +19,19 @@ nightSpeed: 300
 #   WORLD - Every player who is in the same world
 #   SERVER - Every player on the server
 msg:
-    ghost: "You may not rest now, there are ghosts nearby"
+    ghost: "&6You may not rest now, there are ghosts nearby"
     sleep:
-        text: "{player} is now sleeping. {sleeping}/{online} ({percentage}%)"
+        text: "&c{player}&6 is now sleeping. &c{sleeping}/{online}&6 ({percentage}%)"
         type: "SLEEPING"
     leave:
-        text: "{player} is no longer sleeping. {sleeping}/{online} ({percentage}%) {more} more required!"
+        text: "&c{player}&6 is no longer sleeping. &c{sleeping}/{online}&6 ({percentage}%) &c{more}&6 more required!"
         type: "SLEEPING"
     wake:
-        text: "Wakey wakey, rise and shine... Good morning everyone!"
+        text: "&6Wakey wakey, rise and shine... Good morning everyone!"
         type: "WORLD"
     notify:
-        text: "{sleeping} players have gone to bed. Skipping the night!"
+        text: "&c{sleeping}&6 players have gone to bed. Skipping the night!"
         type: "SLEEPING"
     notifyOnSingle:
-        text: "{player} has gone to bed. Skipping the night!"
+        text: "&c{player}&6 has gone to bed. Skipping the night!"
         type: "SLEEPING"

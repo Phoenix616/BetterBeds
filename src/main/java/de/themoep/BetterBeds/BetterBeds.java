@@ -322,7 +322,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	private String buildMsg(String msg, String playername, int sleeping, int online) {
 		if (playername != null)
-			msg = msg.replace("{player}", ChatColor.RED + playername + ChatColor.GOLD);
+			msg = msg.replace("{player}", playername);
 		msg = msg.replace("{sleeping}", sleeping + "");
 		msg = msg.replace("{online}", online + "");
 		float percentage = (float) Math.round(((double) sleeping / online * 100 * 100) / 100 );
