@@ -19,9 +19,12 @@ permissions:
    betterbeds.ghost:
       description: Makes player to a ghost
       default: false
+   betterbeds.ghost.buster:
+      description: Some people think giving * is a good idea. This doesn't make them ghosts
+      default: false
    betterbeds.sleep:
       description: Gives user ability to sleep
       default: true
    betterbeds.ignore:
       description: Users with this permission don't get calculated when they are online.
-      default: op
+      default: false

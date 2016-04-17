@@ -104,7 +104,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		World world = event.getBed().getWorld();
 		int calculatedPlayers = 0;
 		for(Player p : getServer().getOnlinePlayers()) {
-			if(world.equals(p.getWorld()) && p != event.getPlayer() && p.hasPermission("betterbeds.ghost") && !p.isSleeping()) {
+			if(world.equals(p.getWorld()) && p != event.getPlayer() && !p.isSleeping() && p.hasPermission("betterbeds.ghost") && !p.hasPermission("betterbeds.ghost.buster")) {
 				event.setCancelled(true);
 				event.getPlayer().sendMessage(this.ghostMessage);
 				this.getLogger().info("There is a ghost online, players can't sleep now!");
@@ -142,7 +142,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 		int calculatedPlayers = (playerQuit) ? -1 : 0;
 		for(Player p : getServer().getOnlinePlayers()) {
             if(world.equals(p.getWorld())) {
-                if (p.hasPermission("betterbeds.ghost") && !p.isSleeping())
+                if (!p.isSleeping() && p.hasPermission("betterbeds.ghost") && !p.hasPermission("betterbeds.ghost.buster"))
                     return false;
                 if (p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore"))
                     calculatedPlayers++;
