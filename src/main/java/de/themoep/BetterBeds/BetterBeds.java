@@ -16,6 +16,8 @@ import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 public class BetterBeds extends JavaPlugin implements Listener {
 	
@@ -306,9 +308,29 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	private int countQualifyingPlayers(World world) {
 		int calculatedPlayers = 0;
 		for(Player p : getServer().getOnlinePlayers())
-			if(world.equals(p.getWorld()) && !p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep"))
+			if(world.equals(p.getWorld()) && !p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep") && !isPlayerAFK(p))
 				calculatedPlayers ++;
 		return calculatedPlayers;
+	}
+
+	/**
+	 * Check if a player is AFK
+	 * Currently this only works with the WhosAFK plugin
+	 * TODO: Add support for checking with more methods
+	 * TODO: Add a config option to decide whether AFK players should be counted
+	 * @param Player
+	 * @return boolean - True if Player is currently AFK
+	 */
+	private boolean isPlayerAFK(Player p) {
+		Scoreboard scoreboard = getServer().getScoreboardManager().getMainScoreboard();
+
+		// Players are added to the afkers team by WhosAFK
+		Team afkers = scoreboard.getTeam("afkers");
+		if (afkers != null)
+			return afkers.hasEntry(p.getName());
+
+		// Default to not AFK
+		return false;
 	}
 
 	/**
