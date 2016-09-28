@@ -322,10 +322,14 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 */
 	private boolean isPlayerAFK(Player p) {
 		// Player is AFK according to WhosAFK
-		// TODO: check for exceptions/ensure WhosAFK is loaded
-		WhosAFK whosafk = JavaPlugin.getPlugin(WhosAFK.class);
-		if (whosafk.isEnabled() && whosafk.playerIsAFK(p))
-			return true;
+		try {
+			// Test for ClassNotFoundException
+			Class.forName("whosafk.WhosAFK");
+
+			WhosAFK whosafk = JavaPlugin.getPlugin(WhosAFK.class);
+			if (whosafk.isEnabled() && whosafk.playerIsAFK(p))
+				return true;
+		} catch (ClassNotFoundException e) {}
 
 		// Default to not AFK
 		return false;
