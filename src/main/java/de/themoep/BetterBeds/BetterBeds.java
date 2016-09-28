@@ -1,5 +1,6 @@
 package de.themoep.BetterBeds;
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -16,7 +17,6 @@ import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import whosafk.WhosAFK;
 
 public class BetterBeds extends JavaPlugin implements Listener {
 	
@@ -321,15 +321,26 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * @return boolean - True if Player is currently AFK
 	 */
 	private boolean isPlayerAFK(Player p) {
-		// Player is AFK according to WhosAFK
-		try {
-			// Test for ClassNotFoundException
-			Class.forName("whosafk.WhosAFK");
+		ClassLoader classLoader = BetterBeds.class.getClassLoader();
 
-			WhosAFK whosafk = JavaPlugin.getPlugin(WhosAFK.class);
-			if (whosafk.isEnabled() && whosafk.playerIsAFK(p))
+		// Check if the player is AFK, according to WhosAFK
+		try {
+			// Load the WhosAFK class and it's playerIsAFK(Player) method
+			Class<?> WhosAFK = classLoader.loadClass("whosafk.WhosAFK");
+			Method whosafkPlayerIsAFK = WhosAFK.getMethod("playerIsAFK", Player.class);
+
+			// Get the instance of WhosAFK being used by spigot
+			@SuppressWarnings({ "unchecked", "rawtypes" })
+			JavaPlugin whosafk = JavaPlugin.getPlugin((Class) WhosAFK);
+
+			// Finally, check if WhosAFK thinks the player is AFK
+			if (whosafk.isEnabled() && (boolean) whosafkPlayerIsAFK.invoke(whosafk, p))
 				return true;
-		} catch (ClassNotFoundException e) {}
+		} catch (ClassNotFoundException e) {
+			// WhosAFK is not installed, no need to panic
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		// Default to not AFK
 		return false;
