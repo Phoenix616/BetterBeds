@@ -16,8 +16,7 @@ import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
+import whosafk.WhosAFK;
 
 public class BetterBeds extends JavaPlugin implements Listener {
 	
@@ -322,12 +321,11 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	 * @return boolean - True if Player is currently AFK
 	 */
 	private boolean isPlayerAFK(Player p) {
-		Scoreboard scoreboard = getServer().getScoreboardManager().getMainScoreboard();
-
-		// Players are added to the afkers team by WhosAFK
-		Team afkers = scoreboard.getTeam("afkers");
-		if (afkers != null)
-			return afkers.hasEntry(p.getName());
+		// Player is AFK according to WhosAFK
+		// TODO: check for exceptions/ensure WhosAFK is loaded
+		WhosAFK whosafk = JavaPlugin.getPlugin(WhosAFK.class);
+		if (whosafk.isEnabled() && whosafk.playerIsAFK(p))
+			return true;
 
 		// Default to not AFK
 		return false;
