@@ -199,12 +199,14 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	/**
 	 * Notifies all the players within a world of skipping the night
 	 * @param world
+	 * @param notifymsg
+	 * @param mentionedPlayerName The player being mentioned in the message
 	 */
-	private void notifyPlayers(World world, NotificationMessage notifymsg) {
+	private void notifyPlayers(World world, NotificationMessage notifymsg, String mentionedPlayerName) {
 		if(notifymsg.getType() != NotificationType.NOONE) {
 			HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
 			String msg = buildMsg(notifymsg.getText(),
-					nameOfLastPlayerToEnterBed.get(world.getUID()),
+					mentionedPlayerName,
 					playerList.size(),
 					countQualifyingPlayers(world));
 			List<Player> pl = new ArrayList<Player>();
@@ -220,6 +222,15 @@ public class BetterBeds extends JavaPlugin implements Listener {
 				p.sendMessage(ChatColor.GOLD + msg);
 			}
 		}
+	}
+
+	/**
+	 * Notifies all the players within a world of skipping the night
+	 * @param world
+	 * @param notifymsg
+	 */
+	private void notifyPlayers(World world, NotificationMessage notifymsg) {
+		notifyPlayers(world, notifymsg, nameOfLastPlayerToEnterBed.get(world.getUID()));
 	}
 
 	/**
@@ -270,7 +281,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Calculates what happens when a player leaves the bed. 
+	 * Calculates what happens when a player leaves the bed.
 	 * @param player The player who left the bed
 	 * @param world The world the bed was in (because it's possible the player isn't there anymore when he existed it)
 	 * @return boolean - True if we don't need to check the players anymore, False if didn't get checked if we should fast forward
@@ -291,7 +302,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 	
 			this.getLogger().log(Level.INFO, player.getName() + " is not sleeping anymore. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
 
-			notifyPlayers(world, this.leaveMessage);
+			notifyPlayers(world, this.leaveMessage, player.getName());
 
 			this.checkPlayers(world, false);
 			return true;
