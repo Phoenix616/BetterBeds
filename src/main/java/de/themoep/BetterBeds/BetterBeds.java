@@ -179,7 +179,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
     public int getRequiredPlayers(World world, boolean playerQuit) {
         int eligible = 0;
         for (Player p : world.getPlayers()) {
-            if (p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore") && !isPlayerAFK(p))
+            if (!p.isSleepingIgnored() && p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore") && !isPlayerAFK(p) )
                 eligible++;
         }
 
