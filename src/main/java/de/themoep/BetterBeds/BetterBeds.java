@@ -193,7 +193,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
         int required = (int) Math.ceil(eligible * sleepPercentage);
 
         if (required < minPlayers) {
-            return minPlayers;
+            return Math.min(minPlayers, eligible);
         }
         return required;
     }
