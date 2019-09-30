@@ -10,6 +10,9 @@ sleepPercentage: 0.5
 nightSpeed: 300
 # Whether or not ignored players should help with the sleeping percentage if they decide to sleep
 ignoredHelp: true
+# If set to true this will reset the phantom spawn chance for all players in the world when skipping the night
+# If set to false it will only reset them for the players that slept in the bed (vanilla behaviour)
+resetPhantomsForAll: false
 # The Type defines who should get the message.
 # Possibly values:
 #   noone - Don't display the message to anyone

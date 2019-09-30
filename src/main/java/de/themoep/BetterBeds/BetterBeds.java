@@ -6,6 +6,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
+import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.command.Command;
@@ -49,6 +50,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
     private double sleepPercentage = 0.5;
     private int nightSpeed = 0;
     private boolean ignoredHelp = true;
+    private boolean resetPhantomsForAll = false;
 
     private Map<String, NotificationMessage> notificationMessages = new HashMap<>();
 
@@ -94,6 +96,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
         }
         nightSpeed = getConfig().getInt("nightSpeed");
         ignoredHelp = getConfig().getBoolean("ignoredHelp");
+        resetPhantomsForAll = getConfig().getBoolean("resetPhantomsForAll");
 
         notificationMessages.clear();
         ConfigurationSection notificationsSection = getConfig().getConfigurationSection("notifications");
@@ -286,7 +289,14 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
         notifyPlayers(world, "wake", getReplacements(world, false));
 
-        getInfo(world).clearAsleep();
+        WorldInfo worldInfo = getInfo(world);
+        for (Player player : world.getPlayers()) {
+            if (resetPhantomsForAll || worldInfo.isAsleep(player)) {
+                player.setStatistic(Statistic.TIME_SINCE_REST, 0);
+            }
+        }
+
+        worldInfo.clearAsleep();
     }
 
     /**
