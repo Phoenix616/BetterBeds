@@ -1,390 +1,390 @@
 package de.themoep.BetterBeds;
 
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.logging.Level;
-
+import de.themoep.minedown.MineDown;
+import de.themoep.utils.lang.bukkit.LanguageManager;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerBedEnterEvent;
-import org.bukkit.event.player.PlayerBedLeaveEvent;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.logging.Level;
+
+/*
+ * BetterBeds
+ * Copyright (c) 2019 Max Lee aka Phoenix616 (mail@moep.tv)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 public class BetterBeds extends JavaPlugin implements Listener {
-	
-	private int minPlayers = 2;
-	private double sleepPercentage = 0.5;
-	private int nightSpeed = 0;
-	private HashMap<UUID,HashSet<UUID>> asleepPlayers = new HashMap<UUID,HashSet<UUID>>();
-	private String ghostMessage;
-	private NotificationMessage leaveMessage;
-	private NotificationMessage sleepMessage;
-	private NotificationMessage wakeMessage;
-	private NotificationMessage notifyMessage;
-	private NotificationMessage notifyOnSingleMessage;
-	private int transitionTask = 0;
-	private HashMap<UUID,String> nameOfLastPlayerToEnterBed = new HashMap<UUID,String>(); 
-	
-	public void onEnable() {
-		this.saveDefaultConfig();
-		this.loadConfig();
 
-		this.getServer().getPluginManager().registerEvents(this, this);
-	}
+    private int minPlayers = 2;
+    private double sleepPercentage = 0.5;
+    private int nightSpeed = 0;
+    private boolean ignoredHelp = true;
 
-	/**
-	 * Reload command's method
-	 */
-	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) throws NumberFormatException {
-		if(cmd.getName().equalsIgnoreCase("betterbedsreload") || cmd.getName().equalsIgnoreCase("bbreload")) {
-			sender.sendMessage("[BetterBeds] Reloading Config");
-			this.loadConfig();
-			return true;
-		}
-		return false;		
-	}
-	
-	/**
-	 * Loads the options from the config file into the plugins variables
-	 */
-	private void loadConfig() {
-		this.reloadConfig();
-		this.minPlayers = this.getConfig().getInt("minPlayers");
-		try {
-			this.sleepPercentage = Double.parseDouble(this.getConfig().getString("sleepPercentage").replaceAll(" ", "").replace("%", ""));
-		} catch (NumberFormatException e) {
-			this.getLogger().log(Level.WARNING,"You have an Error in your config at the sleepPercentage-node! Using the default now: " + this.sleepPercentage);
-		} 
-		if (this.sleepPercentage > 1) {
-			this.sleepPercentage = this.sleepPercentage / 100;
-		}
-		this.nightSpeed = this.getConfig().getInt("nightSpeed");
-		this.ghostMessage = ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.ghost"));
-		this.sleepMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.sleep.type")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.sleep.text"))
-		);
-		this.leaveMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.leave.type")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.leave.text"))
-		);
-		this.wakeMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.wake.type")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.wake.text"))
-		);
-		this.notifyMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.notify.type")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notify.text"))
-		);
-		this.notifyOnSingleMessage = new NotificationMessage(
-				NotificationType.valueOf(this.getConfig().getString("msg.notifyOnSingle.type")),
-				ChatColor.translateAlternateColorCodes('&', this.getConfig().getString("msg.notifyOnSingle.text"))
-		);
-	}
-	
-	/**
-	 * Calculate if number of sleeping players is enough to fast forward the night. 
-	 * @param event PlayerBedEnterEvent
-	 */
-	@EventHandler
-	public void onPlayerBedEnter(PlayerBedEnterEvent event) {
-		if(event.isCancelled() 
-				|| event.getPlayer().hasPermission("betterbeds.ignore") 
-				|| !event.getPlayer().hasPermission("betterbeds.sleep")
-				|| this.transitionTask != 0)
-			return;
+    private Map<String, NotificationMessage> notificationMessages = new HashMap<>();
 
-		World world = event.getBed().getWorld();
-		int calculatedPlayers = 0;
-		for(Player p : getServer().getOnlinePlayers()) {
-			if(world.equals(p.getWorld()) && p != event.getPlayer() && !p.isSleeping() && p.hasPermission("betterbeds.ghost") && !p.hasPermission("betterbeds.ghost.buster")) {
-				event.setCancelled(true);
-				event.getPlayer().sendMessage(this.ghostMessage);
-				this.getLogger().info("There is a ghost online, players can't sleep now!");
-				return;
-			}
-			if(!p.hasPermission("betterbeds.ignore"))
-				calculatedPlayers++;
-		}
-		
-		HashSet<UUID> playerList = new HashSet<UUID>();
-		
-		if(this.asleepPlayers.containsKey(world.getUID()))
-			playerList = this.asleepPlayers.get(world.getUID());
-		
-		playerList.add(event.getPlayer().getUniqueId());
-		
-		this.asleepPlayers.put(world.getUID(), playerList);
-		nameOfLastPlayerToEnterBed.put(world.getUID(), event.getPlayer().getName());
-		
-		this.getLogger().log(Level.INFO, event.getPlayer().getName() + " sleeps now. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
+    private final Map<UUID, WorldInfo> infoMap = new HashMap<>();
 
-		if(!this.checkPlayers(world, false))
-			notifyPlayers(world, this.sleepMessage);
-	}
+    private LanguageManager lang;
 
-	/**
-	 * Check if enough players are asleep.
-	 * @param world The world to calculate with
-	 * @param playerQuit
-	 */
-	public boolean isPlayerLimitSatisfied(World world, boolean playerQuit) {
-		if(!this.asleepPlayers.containsKey(world.getUID()) || this.asleepPlayers.get(world.getUID()).size() == 0)
-			return false;
+    public void onEnable() {
+        saveDefaultConfig();
+        loadConfig();
 
-		int calculatedPlayers = (playerQuit) ? -1 : 0;
-		for(Player p : getServer().getOnlinePlayers()) {
-            if(world.equals(p.getWorld())) {
-                if (!p.isSleeping() && p.hasPermission("betterbeds.ghost") && !p.hasPermission("betterbeds.ghost.buster"))
-                    return false;
-                if (p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore") && !isPlayerAFK(p))
-                    calculatedPlayers++;
-            }
-		}		
-		HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-		return (playerList.size() >= minPlayers	&& playerList.size() >= calculatedPlayers * this.sleepPercentage) 
-				|| (playerList.size() < minPlayers && playerList.size() >= calculatedPlayers);
-	}
-	
-	/**
-	 * Check if enough players are asleep and fast forward if so.
-	 * @param world The world to calculate with
-	 * @param playerQuit
-	 */
-	private boolean checkPlayers(final World world, boolean playerQuit) {
-		if (isPlayerLimitSatisfied(world, playerQuit)) {
-			if (this.nightSpeed == 0) {
-				this.getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
-				notifyPlayers(world, (this.asleepPlayers.get(world.getUID()).size() > 1) ? this.notifyMessage : this.notifyOnSingleMessage);
-				setWorldToMorning(world);
-			} else {
-				if (transitionTask != 0)
-					return false;
-				
-				notifyPlayers(world, (this.asleepPlayers.get(world.getUID()).size() > 1) ? this.notifyMessage : this.notifyOnSingleMessage);
+        getServer().getPluginManager().registerEvents(new BetterBedsListener(this), this);
+    }
 
-				this.getLogger().log(Level.INFO, "Timelapsing " + nightSpeed + "x until dawn in world " + world.getName());
-				transitionTask = this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
-					public void run() {
-						if (!isPlayerLimitSatisfied(world, false)) {
-							getServer().getScheduler().cancelTask(transitionTask);
-							transitionTask = 0;
-							return;
-						}
-						long currentTime = world.getTime();
-						long newTime = currentTime + nightSpeed; 
-						if (newTime >= 23450) {
-							getServer().getScheduler().cancelTask(transitionTask);
-							transitionTask = 0;
-							setWorldToMorning(world);
-						} else {
-							world.setTime(currentTime + nightSpeed);
-						}
-					}
-				}, 1L, 1L);
-			}
-			return true;
-		}
-		return false;
-	}
+    /**
+     * Reload command's method
+     */
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) throws NumberFormatException {
+        if (args.length == 0) {
+            sender.sendMessage(ChatColor.YELLOW + "BetterBeds v" + getDescription().getVersion());
+        } else if ("reload".equalsIgnoreCase(args[0])) {
+            sender.sendMessage(ChatColor.YELLOW + "[BetterBeds] Reloading Config");
+            loadConfig();
+            return true;
+        }
+        return false;
+    }
 
-	/**
-	 * Notifies all the players within a world of skipping the night
-	 * @param world
-	 * @param notifymsg
-	 * @param mentionedPlayerName The player being mentioned in the message
-	 */
-	private void notifyPlayers(World world, NotificationMessage notifymsg, String mentionedPlayerName) {
-		if(notifymsg.getType() != NotificationType.NOONE) {
-			HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-			String msg = buildMsg(notifymsg.getText(),
-					mentionedPlayerName,
-					playerList.size(),
-					countQualifyingPlayers(world));
-			List<Player> pl = new ArrayList<Player>();
-			if (notifymsg.getType() == NotificationType.WORLD)
-				pl = getPlayers(world);
-			else if (notifymsg.getType() == NotificationType.SERVER)
-				pl = new ArrayList<Player>(this.getServer().getOnlinePlayers());
-			else
-				for (Player p : this.getServer().getOnlinePlayers())
-					if (playerList.contains(p.getUniqueId()))
-						pl.add(p);
-			for (Player p : pl) {
-				p.sendMessage(ChatColor.GOLD + msg);
-			}
-		}
-	}
+    /**
+     * Loads the options from the config file into the plugins variables
+     */
+    private void loadConfig() {
+        reloadConfig();
+        lang = new LanguageManager(this, getConfig().getString("default-language"));
+        minPlayers = getConfig().getInt("minPlayers");
+        try {
+            sleepPercentage = Double.parseDouble(this.getConfig().getString("sleepPercentage").replaceAll(" ", "").replace("%", ""));
+        } catch (NumberFormatException e) {
+            getLogger().log(Level.WARNING, "You have an Error in your config at the sleepPercentage-node! Using the default now: " + this.sleepPercentage);
+        }
+        if (sleepPercentage > 1) {
+            sleepPercentage = sleepPercentage / 100;
+        }
+        nightSpeed = getConfig().getInt("nightSpeed");
+        ignoredHelp = getConfig().getBoolean("ignoredHelp");
 
-	/**
-	 * Notifies all the players within a world of skipping the night
-	 * @param world
-	 * @param notifymsg
-	 */
-	private void notifyPlayers(World world, NotificationMessage notifymsg) {
-		notifyPlayers(world, notifymsg, nameOfLastPlayerToEnterBed.get(world.getUID()));
-	}
-
-	/**
-	 * Resets the world's climate and the list of sleeping players.
-	 * @param world
-	 */
-	public void setWorldToMorning(World world)
-	{
-		world.setTime(23450);
-		if(world.hasStorm())
-			world.setStorm(false);
-		
-		if(world.isThundering())
-			world.setThundering(false);
-
-		notifyPlayers(world, this.wakeMessage);
-
-		this.asleepPlayers.get(world.getUID()).clear();
-	}
-	
-	/**
-	 * Recalculates the number of sleeping players if a player leaves his bed
-	 * @param event PlayerBedLeaveEvent
-	 */
-	@EventHandler
-	public void onPlayerBedLeave(PlayerBedLeaveEvent event) {
-		this.calculateBedleave(event.getPlayer(), event.getBed().getWorld());
-	}	
-
-	/**
-	 * Recalculates the number of sleeping players if a player quits the game between 12500 and 100 time ticks
-	 * @param event PlayerQuitEvent
-	 */
-	@EventHandler
-	public void onPlayerQuit(PlayerQuitEvent event) {
-		if(!this.calculateBedleave(event.getPlayer(), event.getPlayer().getWorld()))
-			this.checkPlayers(event.getPlayer().getWorld(), true);
-	}
-	
-	/**
-	 * Recalculates the number of sleeping players if a player changes from a normal world between 12500 and 100 time ticks
-	 * @param event PlayerChangedWorldEvent
-	 */
-	@EventHandler
-	public void onWorldChange(PlayerChangedWorldEvent event) {
-		if(!this.calculateBedleave(event.getPlayer(), event.getFrom()))
-			this.checkPlayers(event.getFrom(), false);
-	}
-
-	/**
-	 * Calculates what happens when a player leaves the bed.
-	 * @param player The player who left the bed
-	 * @param world The world the bed was in (because it's possible the player isn't there anymore when he existed it)
-	 * @return boolean - True if we don't need to check the players anymore, False if didn't get checked if we should fast forward
-	 */
-	private boolean calculateBedleave(Player player, World world) {
-
-		if(world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100)
-			return true;
-		if(!this.asleepPlayers.containsKey(world.getUID()))
-			return true;
-		
-		if(this.asleepPlayers.get(world.getUID()).contains(player.getUniqueId())) {
-			int calculatedPlayers = countQualifyingPlayers(world);
-
-			this.asleepPlayers.get(world.getUID()).remove(player.getUniqueId());
-	
-			HashSet<UUID> playerList = this.asleepPlayers.get(world.getUID());
-	
-			this.getLogger().log(Level.INFO, player.getName() + " is not sleeping anymore. " + playerList.size() + "/" + calculatedPlayers + " players are asleep in world " + world.getName());
-
-			notifyPlayers(world, this.leaveMessage, player.getName());
-
-			this.checkPlayers(world, false);
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Count all the players that matter
-	 * @param world The world to count in
-	 * @return int - The count of the players
-	 */
-	private int countQualifyingPlayers(World world) {
-		int calculatedPlayers = 0;
-		for(Player p : getServer().getOnlinePlayers())
-			if(world.equals(p.getWorld()) && !p.hasPermission("betterbeds.ignore") && p.hasPermission("betterbeds.sleep") && !isPlayerAFK(p))
-				calculatedPlayers ++;
-		return calculatedPlayers;
-	}
-
-	/**
-	 * Check if a player is AFK
-	 * Currently this only works with the WhosAFK plugin
-	 * TODO: Add support for checking with more methods
-	 * TODO: Add a config option to decide whether AFK players should be counted
-	 * @param Player
-	 * @return boolean - True if Player is currently AFK
-	 */
-	private boolean isPlayerAFK(Player p) {
-		ClassLoader classLoader = BetterBeds.class.getClassLoader();
-
-		// Check if the player is AFK, according to WhosAFK
-		try {
-			// Load the WhosAFK class and it's playerIsAFK(Player) method
-			Class<?> WhosAFK = classLoader.loadClass("whosafk.WhosAFK");
-			Method whosafkPlayerIsAFK = WhosAFK.getMethod("playerIsAFK", Player.class);
-
-			// Get the instance of WhosAFK being used by spigot
-			@SuppressWarnings({ "unchecked", "rawtypes" })
-			JavaPlugin whosafk = JavaPlugin.getPlugin((Class) WhosAFK);
-
-			// Finally, check if WhosAFK thinks the player is AFK
-			if (whosafk.isEnabled() && (Boolean) whosafkPlayerIsAFK.invoke(whosafk, p))
-				return true;
-		} catch (ClassNotFoundException e) {
-			// WhosAFK is not installed, no need to panic
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		// Default to not AFK
-		return false;
-	}
-
-	/**
-	 * Converts eventual parameters in a message into its real values.
-	 * TODO: Make it so that not every parameter is required!
-	 * @param msg String of the message to convert 
-	 * @param playername String of the playername to insert in the message
-	 * @param sleeping Integer of sleeping players
-	 * @param online Integer of online players in world
-	 * @return String of the converted message
-	 */
-	private String buildMsg(String msg, String playername, int sleeping, int online) {
-		if (playername != null)
-			msg = msg.replace("{player}", playername);
-		msg = msg.replace("{sleeping}", sleeping + "");
-		msg = msg.replace("{online}", online + "");
-		float percentage = (float) Math.round(((double) sleeping / online * 100 * 100) / 100 );
-		msg = msg.replace("{percentage}", String.format("%.2f", percentage));
-		int more = (int) (Math.ceil(online * this.sleepPercentage) - sleeping);
-		msg = msg.replace("{more}", Integer.toString(more));
-		return msg;
-	}
-    
-    private List<Player> getPlayers(World world) {
-        List<Player> pList = new ArrayList<Player>();
-        for(Player p : getServer().getOnlinePlayers()) {
-            if(world.equals(p.getWorld())) {
-                pList.add(p);
+        notificationMessages.clear();
+        ConfigurationSection notificationsSection = getConfig().getConfigurationSection("notifications");
+        for (String key : notificationsSection.getKeys(true)) {
+            try {
+                notificationMessages.put(key.toLowerCase(), new NotificationMessage(
+                        NotificationType.valueOf(notificationsSection.getString(key + ".type", "server").toUpperCase()),
+                        NotificationLocation.valueOf(notificationsSection.getString(key + ".location", "chat").toUpperCase()),
+                        key
+                ));
+            } catch (IllegalArgumentException e) {
+                getLogger().log(Level.WARNING, "Error while loading notification config of " + key + ": " + e.getMessage());
             }
         }
-        return pList;
+    }
+
+    public WorldInfo getInfo(World world) {
+        return infoMap.computeIfAbsent(world.getUID(), id -> new WorldInfo());
+    }
+
+    public String getText(CommandSender sender, String key, Map<String, String> replacements) {
+        return TextComponent.toLegacyText(getMessage(sender, key, replacements));
+    }
+
+    public BaseComponent[] getMessage(CommandSender sender, String key, Map<String, String> replacements) {
+        return new MineDown(lang.getConfig(sender).get(key)).placeholderPrefix("{").placeholderSuffix("}").replace(replacements).toComponent();
+    }
+
+    public void sendMessage(CommandSender sender, String key) {
+        sendMessage(sender, key, Collections.emptyMap());
+    }
+
+    public void sendMessage(CommandSender sender, String key, Map<String, String> replacements) {
+        if (sender instanceof Player) {
+            NotificationMessage notInfo = getNotification(key);
+            switch (notInfo.getLocation()) {
+                case CHAT:
+                    sender.spigot().sendMessage(getMessage(sender, key, replacements));
+                    break;
+                case TITLE:
+                    String[] msg = getText(sender, key, replacements).split("\n");
+                    ((Player) sender).sendTitle(msg[0], msg.length > 1 ? msg[1] : "", 10, 70, 20);
+                    if (msg.length > 2) {
+                        ((Player) sender).spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(msg[3]));
+                    }
+                    break;
+                case ACTIONBAR:
+                    ((Player) sender).spigot().sendMessage(ChatMessageType.ACTION_BAR, getMessage(sender, key, replacements));
+                    break;
+            }
+        } else {
+            sender.sendMessage(getText(sender, key, replacements));
+        }
+    }
+
+    private NotificationMessage getNotification(String key) {
+        return notificationMessages.computeIfAbsent(key.toLowerCase(), k -> new NotificationMessage(NotificationType.SERVER, NotificationLocation.CHAT, k));
+    }
+
+    /**
+     * Check if enough players are asleep.
+     * @param world         The world to calculate with
+     * @param playerQuit    Whether this was called by a player quit or not (substracts one from the count)
+     */
+    public boolean isPlayerRequirementSatisfied(World world, boolean playerQuit) {
+        if (!infoMap.containsKey(world.getUID()))
+            return false;
+
+        for (Player p : world.getPlayers()) {
+            if (!p.isSleeping() && p.hasPermission("betterbeds.ghost") && !p.hasPermission("betterbeds.ghost.buster"))
+                return false;
+        }
+
+        return getInfo(world).getAsleep().size() >= getRequiredPlayers(world, playerQuit);
+    }
+
+    /**
+     * Get the amount of players required to sleep to advance the night
+     * @param world         The world to check
+     * @param playerQuit    Whether this was called by a player quit or not (substracts one from the count)
+     * @return
+     */
+    public int getRequiredPlayers(World world, boolean playerQuit) {
+        int eligible = 0;
+        for (Player p : world.getPlayers()) {
+            if (p.hasPermission("betterbeds.sleep") && !p.hasPermission("betterbeds.ignore") && !isPlayerAFK(p))
+                eligible++;
+        }
+
+        if (playerQuit && eligible > 0) {
+            eligible--;
+        }
+
+        int required = (int) Math.ceil(eligible * sleepPercentage);
+
+        if (required < minPlayers) {
+            return minPlayers;
+        }
+        return required;
+    }
+
+    /**
+     * Check if enough players are asleep and fast forward if so.
+     * @param world      The world to calculate with
+     * @param onQuit
+     */
+    public boolean checkPlayers(final World world, boolean onQuit) {
+        if (isPlayerRequirementSatisfied(world, onQuit)) {
+            WorldInfo worldInfo = getInfo(world);
+            if (nightSpeed == 0) {
+                getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
+                notifyPlayers(world, (worldInfo.getAsleep().size() > 1) ? "notify" : "notifyOnSingle", getReplacements(world, onQuit));
+                setWorldToMorning(world);
+            } else {
+                if (worldInfo.isTransitioning())
+                    return false;
+
+                notifyPlayers(world, (worldInfo.getAsleep().size() > 1) ? "notify" : "notifyOnSingle", getReplacements(world, onQuit));
+
+                getLogger().log(Level.INFO, "Timelapsing " + nightSpeed + "x until dawn in world " + world.getName());
+                worldInfo.setTransitionTask(getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
+                    if (!isPlayerRequirementSatisfied(world, false)) {
+                        getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
+                        worldInfo.setTransitionTask(0);
+                        return;
+                    }
+                    long currentTime = world.getTime();
+                    long newTime = currentTime + nightSpeed;
+                    if (newTime >= 23450) {
+                        getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
+                        worldInfo.setTransitionTask(0);
+                        setWorldToMorning(world);
+                    } else {
+                        world.setTime(currentTime + nightSpeed);
+                    }
+                }, 1L, 1L));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Notifies all the players within a world of skipping the night
+     * @param world         The world
+     * @param key           The key of the message
+     * @param replacements  The replacements
+     */
+    public void notifyPlayers(World world, String key, Map<String, String> replacements) {
+        NotificationMessage notification = getNotification(key);
+        Set<Player> pl = new HashSet<>();
+        if (notification.getType() != NotificationType.NOONE) {
+            switch (notification.getType()) {
+                case WORLD:
+                    pl.addAll(world.getPlayers());
+                    break;
+                case SERVER:
+                    pl.addAll(getServer().getOnlinePlayers());
+                    break;
+                case SLEEPING:
+                    WorldInfo worldInfo = getInfo(world);
+                    for (Player p : world.getPlayers())
+                        if (worldInfo.isAsleep(p))
+                            pl.add(p);
+
+            }
+        }
+
+        for (Player p : getServer().getOnlinePlayers()) {
+            if (p.hasPermission("betterbeds.allnotifications"))
+                pl.add(p);
+        }
+
+        for (Player p : pl) {
+            sendMessage(p, key, replacements);
+        }
+    }
+
+    /**
+     * Resets the world's climate and the list of sleeping players.
+     * @param world The world to change the time for
+     */
+    public void setWorldToMorning(World world) {
+        world.setTime(23450);
+        if (world.hasStorm())
+            world.setStorm(false);
+
+        if (world.isThundering())
+            world.setThundering(false);
+
+        notifyPlayers(world, "wake", getReplacements(world, false));
+
+        getInfo(world).clearAsleep();
+    }
+
+    /**
+     * Calculates what happens when a player leaves the bed.
+     * @param player The player who left the bed
+     * @param world  The world the bed was in (because it's possible the player isn't there anymore when he existed it)
+     * @param onQuit Whether or not this is called on quit
+     * @return boolean - True if we don't need to check the players anymore, False if didn't get checked if we should fast forward
+     */
+    public boolean calculateBedLeave(Player player, World world, boolean onQuit) {
+
+        if (world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100)
+            return true;
+
+        WorldInfo worldInfo = getInfo(world);
+        if (worldInfo.isAsleep(player)) {
+            int requiredPlayers = getRequiredPlayers(world, onQuit);
+
+            worldInfo.setAwake(player);
+
+            getLogger().log(Level.INFO, player.getName() + " is not sleeping anymore. " + worldInfo.getAsleep().size() + "/" + requiredPlayers + " players are asleep in world " + world.getName());
+
+            notifyPlayers(world, "leave", getReplacements(world, player.getName(), worldInfo.getAsleep().size(), requiredPlayers));
+
+            checkPlayers(world, false);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a player is AFK
+     * Currently this only works with the WhosAFK plugin
+     * TODO: Add support for checking with more methods
+     * TODO: Add a config option to decide whether AFK players should be counted
+     * @param p the player
+     * @return boolean - True if Player is currently AFK
+     */
+    private boolean isPlayerAFK(Player p) {
+        ClassLoader classLoader = BetterBeds.class.getClassLoader();
+
+        // Check if the player is AFK, according to WhosAFK
+        try {
+            // Load the WhosAFK class and it's playerIsAFK(Player) method
+            Class<?> WhosAFK = classLoader.loadClass("whosafk.WhosAFK");
+            Method whosafkPlayerIsAFK = WhosAFK.getMethod("playerIsAFK", Player.class);
+
+            // Get the instance of WhosAFK being used by spigot
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            JavaPlugin whosafk = JavaPlugin.getPlugin((Class) WhosAFK);
+
+            // Finally, check if WhosAFK thinks the player is AFK
+            if (whosafk.isEnabled() && (Boolean) whosafkPlayerIsAFK.invoke(whosafk, p))
+                return true;
+        } catch (ClassNotFoundException e) {
+            // WhosAFK is not installed, no need to panic
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Default to not AFK
+        return false;
+    }
+
+    private Map<String, String> getReplacements(World world, boolean onQuit) {
+        WorldInfo worldInfo = getInfo(world);
+        return getReplacements(world, worldInfo.getLastPlayerToEnterBed(), worldInfo.getAsleep().size(), getRequiredPlayers(world, onQuit));
+    }
+
+    /**
+     * Converts eventual parameters in a message into a replacement map
+     * TODO: Make it so that not every parameter is required!
+     * @param world         The World to notify for
+     * @param playername    String of the playername to insert in the message
+     * @param sleeping      Integer of sleeping players
+     * @param required      Integer of players required to sleep in the world
+     * @return Replacement map
+     */
+    public Map<String, String> getReplacements(World world, String playername, int sleeping, int required) {
+        Map<String, String> replacements = new LinkedHashMap<>();
+
+        replacements.put("world", world.getName());
+        if (playername != null)
+            replacements.put("player", playername);
+
+        replacements.put("sleeping", String.valueOf(sleeping));
+        replacements.put("required", String.valueOf(required));
+
+        float percentage = (float) Math.round(((double) sleeping / required * 100 * 100) / 100);
+        replacements.put("percentage", String.format("%.2f", percentage));
+
+        int more = required - sleeping;
+        replacements.put("more", String.valueOf(more));
+
+        return replacements;
+    }
+
+    public boolean ignoredHelp() {
+        return ignoredHelp;
     }
 }

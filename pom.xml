@@ -5,13 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.themoep</groupId>
     <artifactId>BetterBeds</artifactId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
     <description>Make sleeping in Beds a lot better!</description>
     <name>BetterBeds</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <build.number>${buildNumber}</build.number>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <minecraft.plugin.version>${version} ${buildDescription}</minecraft.plugin.version>
     </properties>
 
     <repositories>
@@ -19,13 +21,30 @@
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
+        <repository>
+            <id>minebench-repo</id>
+            <url>https://repo.minebench.de/</url>
+        </repository>
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>bukkit</artifactId>
-            <version>1.8-R0.1-SNAPSHOT</version>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.13.2-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.themoep.utils</groupId>
+            <artifactId>lang-bukkit</artifactId>
+            <version>1.2-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.themoep</groupId>
+            <artifactId>minedown</artifactId>
+            <version>1.4-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -39,7 +58,7 @@
             </activation>
             <properties>
                 <buildNumber>0</buildNumber>
-                <buildDescription>(manually compiled)</buildDescription>
+                <buildDescription>(compiled at ${maven.build.timestamp})</buildDescription>
             </properties>
         </profile>
         <profile>
@@ -51,7 +70,7 @@
             </activation>
             <properties>
                 <buildNumber>${env.BUILD_NUMBER}</buildNumber>
-                <buildDescription>(build #${env.BUILD_NUMBER})</buildDescription>
+                <buildDescription>(build ${env.BUILD_NUMBER})</buildDescription>
             </properties>
         </profile>
     </profiles>
@@ -64,24 +83,18 @@
                 <directory>${project.basedir}/src/main/resources</directory>
             </resource>
         </resources>
+
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.9.1</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <id>regex-property</id>
+                        <phase>package</phase>
                         <goals>
-                            <goal>regex-property</goal>
+                            <goal>shade</goal>
                         </goals>
-                        <configuration>
-                            <name>minecraft.plugin.version</name>
-                            <value>${project.version} ${buildDescription}</value>
-                            <regex>[0-9\.]+ \(.+\)</regex>
-                            <replacement>${project.version}</replacement>
-                            <failIfNoMatch>false</failIfNoMatch>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

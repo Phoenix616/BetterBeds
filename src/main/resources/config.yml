@@ -1,3 +1,5 @@
+# The default messages language
+default-language: en
 # the number of players which have to sleep independently from the percentage
 # if this is above the playercount in a world all players in the world have to sleep
 minPlayers: 2
@@ -5,33 +7,33 @@ minPlayers: 2
 # set it to 1 or 100% to use the plugin and normal sleeping behavior but with the benefit of ignored 
 sleepPercentage: 0.5
 # Speed of time for a smoother transition to the morning. Set to 0 to disable this feature. 
-nightSpeed: 300  
-# use {player} for the sleeping players name
-# use {sleeping} for the count of the sleeping players
-# use {online} for the online playercount
-# use {percentage} for the percentage of sleeping players 
-# use {more} to get the count of how many more players have to sleep to skip the night
-#
+nightSpeed: 300
+# Whether or not ignored players should help with the sleeping percentage if they decide to sleep
+ignoredHelp: true
 # The Type defines who should get the message.
 # Possibly values:
-#   NOONE - Don't display the message to anyone
-#   SLEEPING - Only players who lye in a bed
-#   WORLD - Every player who is in the same world
-#   SERVER - Every player on the server
-msg:
-    ghost: "&6You may not rest now, there are ghosts nearby"
-    sleep:
-        text: "&c{player}&6 is now sleeping. &c{sleeping}/{online}&6 ({percentage}%)"
-        type: "SLEEPING"
-    leave:
-        text: "&c{player}&6 is no longer sleeping. &c{sleeping}/{online}&6 ({percentage}%) &c{more}&6 more required!"
-        type: "SLEEPING"
-    wake:
-        text: "&6Wakey wakey, rise and shine... Good morning everyone!"
-        type: "WORLD"
-    notify:
-        text: "&c{sleeping}&6 players have gone to bed. Skipping the night!"
-        type: "SLEEPING"
-    notifyOnSingle:
-        text: "&c{player}&6 has gone to bed. Skipping the night!"
-        type: "SLEEPING"
+#   noone - Don't display the message to anyone
+#   sleeping - Only players who lye in a bed
+#   world - Every player who is in the same world
+#   server - Every player on the server
+# The location defined where the messages gets displayed.
+# Possible values:
+#   chat - As a chat message
+#   title - As a title
+#   actionbar - In the action bar
+notifications:
+  sleep:
+    type: "sleeping"
+    location: "chat"
+  leave:
+    type: "sleeping"
+    location: "chat"
+  wake:
+    type: "world"
+    location: "chat"
+  notify:
+    type: "sleeping"
+    location: "chat"
+  notifyOnSingle:
+    type: "sleeping"
+    location: "chat"

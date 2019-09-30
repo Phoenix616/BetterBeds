@@ -1,18 +1,22 @@
 name: ${project.name}
 main: de.themoep.BetterBeds.BetterBeds
 version: '${minecraft.plugin.version}'
+api-version: 1.13
 description: ${project.description}
 author: Phoenix616
 authors: [NeoTiger]
 website: https://github.com/Phoenix616/BetterBeds/
 commands:
-   betterbedsreload:
-      aliases: [bbreload]
-      description: Reloads the config from the configfile.
-      usage: /<command>
-      permission: betterbeds.cmd.reload
+   betterbeds:
+      aliases: [bb]
+      description: Main plugin command
+      usage: /<command> [reload]
+      permission: betterbeds.cmd
       permission-message: You don't have the permission <permission>
 permissions:
+   betterbeds.cmd:
+      description: Gives permission to the command
+      default: op
    betterbeds.cmd.reload:
       description: Gives permission to the reload command
       default: op
@@ -27,4 +31,7 @@ permissions:
       default: true
    betterbeds.ignore:
       description: Users with this permission don't get calculated when they are online.
+      default: false
+   betterbeds.allnotifications:
+      description: Users with this permission will get all notifications shown no matter the type.
       default: false

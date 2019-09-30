@@ -19,15 +19,13 @@ package de.themoep.BetterBeds;
  */
 
 /**
- * Enum to specify who should get a notification message.
- * NOONE - Don't display the message to anyone
- * SLEEPING - Only players who lye in a bed
- * WORLD - Every player who is in the same world
- * SERVER - Every player on the server
+ * Enum to specify the location where the messages gets displayed.
+ * CHAT - As a chat message
+ * TITLE - As a title
+ * ACTIONBAR - In the action bar
  */
-public enum NotificationType {
-        NOONE,
-        SLEEPING,
-        WORLD,
-        SERVER;
+public enum NotificationLocation {
+        CHAT,
+        TITLE,
+        ACTIONBAR;
 }
