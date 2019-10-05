@@ -379,8 +379,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
         Map<String, String> replacements = new LinkedHashMap<>();
 
         replacements.put("world", world.getName());
-        if (playername != null)
-            replacements.put("player", playername);
+        replacements.put("player", playername != null ? playername : "Someone");
 
         replacements.put("sleeping", String.valueOf(sleeping));
         replacements.put("required", String.valueOf(required));
