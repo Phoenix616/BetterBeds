@@ -4,7 +4,7 @@
 # use {percentage} for the percentage of sleeping players
 # use {more} to get the count of how many more players have to sleep to skip the night
 ghost: "&6You may not rest now, there are ghosts nearby"
-sleep: "&c{player}&6 is now sleeping. &c{sleeping}/{required}&6 ({percentage}%)"
+sleep: "&c{player}&6 is now sleeping. &c{sleeping}/{required}&6 ({percentage}%) &c{more}&6 more required!"
 leave: "&c{player}&6 is no longer sleeping. &c{sleeping}/{required}&6 ({percentage}%) &c{more}&6 more required!"
 wake: "&6Wakey wakey, rise and shine... Good morning everyone!"
 notify: "&c{sleeping}&6 players have gone to bed. Skipping the night!"

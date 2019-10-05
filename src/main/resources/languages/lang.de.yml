@@ -3,9 +3,9 @@
 # use {online} for the online playercount
 # use {percentage} for the percentage of sleeping players
 # use {more} to get the count of how many more players have to sleep to skip the night
-ghost: "Du kannst jetzt nicht schlafen, es sind Geister in der Nähe!"
-sleep: "{player} schläft jetzt. {sleeping}/{required} ({percentage}%) Noch {more} benötigt!"
-leave: "{player} schläft nichtmehr. {sleeping}/{required} ({percentage}%)"
-wake: "Guten Morgen!"
-notify: "{sleeping} Spieler sind schlafen gegangen. Überspringe die Nacht!"
-notifyOnSingle: "{player} schläft nun. Überspringe die Nacht!"
+ghost: "&6Du kannst jetzt nicht schlafen, es sind Geister in der Nähe!"
+sleep: "&c{player}&6 schläft jetzt. &c{sleeping}/{required}&6 ({percentage}%) Noch &c{more}&6 benötigt!"
+leave: "&c{player}&6 schläft nichtmehr. &c{sleeping}/{required}&6 ({percentage}%) Noch &c{more}&6 benötigt!"
+wake: "&6Guten Morgen!"
+notify: "&c{sleeping}&6 Spieler sind schlafen gegangen. Überspringe die Nacht!"
+notifyOnSingle: "&c{player}&6 schläft nun. Überspringe die Nacht!"
