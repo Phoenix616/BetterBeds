@@ -170,7 +170,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
                 return false;
         }
 
-        return getInfo(world).getAsleep().size() >= getRequiredPlayers(world, playerQuit);
+        return !getInfo(world).getAsleep().isEmpty() && getInfo(world).getAsleep().size() >= getRequiredPlayers(world, playerQuit);
     }
 
     /**
@@ -308,7 +308,11 @@ public class BetterBeds extends JavaPlugin implements Listener {
      */
     public boolean calculateBedLeave(Player player, World world, boolean onQuit) {
 
-        if (world.getEnvironment() == Environment.NORMAL && world.getTime() >= 12500 && world.getTime() <= 100)
+        if (world.getEnvironment() != Environment.NORMAL)
+            return true;
+
+        if ((world.getWeatherDuration() > 0 && (world.getTime() < 12010 || world.getTime() > 23992))
+                || (world.getWeatherDuration() == 0 && (world.getTime() < 12542 && world.getTime() > 23460)))
             return true;
 
         WorldInfo worldInfo = getInfo(world);
