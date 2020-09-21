@@ -225,7 +225,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
                     }
                     long currentTime = world.getTime();
                     long newTime = currentTime + nightSpeed;
-                    if (newTime >= getWakeupTime(world)) {
+                    if (newTime >= 24000L) {
                         getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
                         worldInfo.setTransitionTask(0);
                         setWorldToMorning(world);
@@ -280,8 +280,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
      * @param world The world to change the time for
      */
     public void setWorldToMorning(World world) {
-        if (world.getTime() < getWakeupTime(world)) {
-            world.setTime(getWakeupTime(world));
+        if (world.getTime() < 24000L) {
+            world.setTime(24000L);
         }
         if (world.hasStorm())
             world.setStorm(false);
@@ -299,10 +299,6 @@ public class BetterBeds extends JavaPlugin implements Listener {
         }
 
         worldInfo.clearAsleep();
-    }
-
-    private long getWakeupTime(World world) {
-        return world.hasStorm() ? 23992 : 23460;
     }
 
     /**
