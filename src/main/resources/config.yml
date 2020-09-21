@@ -6,8 +6,9 @@ minPlayers: 2
 # the ration of players which have to sleep
 # set it to 1 or 100% to use the plugin and normal sleeping behavior but with the benefit of ignored 
 sleepPercentage: 0.5
-# Speed of time for a smoother transition to the morning. Set to 0 to disable this feature. 
-nightSpeed: 300
+# How long in ticks it takes to pass the night (above 0, which is instant, it uses a transition).
+# Set to -1 to disable the transition animation.
+nightSpeed: 100
 # Whether or not ignored players should help with the sleeping percentage if they decide to sleep
 ignoredHelp: true
 # If set to true this will reset the phantom spawn chance for all players in the world when skipping the night

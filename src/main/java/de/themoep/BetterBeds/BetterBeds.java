@@ -204,9 +204,17 @@ public class BetterBeds extends JavaPlugin implements Listener {
      * @param onQuit
      */
     public boolean checkPlayers(final World world, boolean onQuit) {
+        WorldInfo worldInfo = getInfo(world);
         if (isPlayerRequirementSatisfied(world, onQuit)) {
-            WorldInfo worldInfo = getInfo(world);
-            if (nightSpeed == 0) {
+            if (nightSpeed == -1) {
+                getLogger().log(Level.INFO, "Skipping to next day in 100 ticks in world " + world.getName());
+                worldInfo.setTransitionTask(getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
+                    worldInfo.setTransitionTask(0);
+                    if (isPlayerRequirementSatisfied(world, false)) {
+                        setWorldToMorning(world);
+                    }
+                }, 100));
+            } else if (nightSpeed == 0) {
                 getLogger().log(Level.INFO, "Set time to dawn in world " + world.getName());
                 notifyPlayers(world, (worldInfo.getAsleep().size() > 1) ? "notify" : "notifyOnSingle", getReplacements(world, onQuit));
                 setWorldToMorning(world);
@@ -216,7 +224,8 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
                 notifyPlayers(world, (worldInfo.getAsleep().size() > 1) ? "notify" : "notifyOnSingle", getReplacements(world, onQuit));
 
-                getLogger().log(Level.INFO, "Timelapsing " + nightSpeed + "x until dawn in world " + world.getName());
+                getLogger().log(Level.INFO, "Timelapsing ~" + nightSpeed + " ticks until dawn in world " + world.getName());
+                long skipPerTick = (24000L - world.getTime()) / nightSpeed;
                 worldInfo.setTransitionTask(getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
                     if (!isPlayerRequirementSatisfied(world, false)) {
                         getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
@@ -224,17 +233,20 @@ public class BetterBeds extends JavaPlugin implements Listener {
                         return;
                     }
                     long currentTime = world.getTime();
-                    long newTime = currentTime + nightSpeed;
+                    long newTime = currentTime + skipPerTick;
                     if (newTime >= 24000L) {
                         getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
                         worldInfo.setTransitionTask(0);
                         setWorldToMorning(world);
                     } else {
-                        world.setTime(currentTime + nightSpeed);
+                        world.setTime(newTime);
                     }
                 }, 1L, 1L));
             }
             return true;
+        } else if (worldInfo.isTransitioning()) {
+            getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
+            worldInfo.setTransitionTask(0);
         }
         return false;
     }
