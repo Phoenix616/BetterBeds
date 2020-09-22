@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /*
@@ -224,8 +225,26 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
                 notifyPlayers(world, (worldInfo.getAsleep().size() > 1) ? "notify" : "notifyOnSingle", getReplacements(world, onQuit));
 
-                getLogger().log(Level.INFO, "Timelapsing ~" + nightSpeed + " ticks until dawn in world " + world.getName());
-                long skipPerTick = (24000L - world.getTime()) / nightSpeed;
+                getLogger().log(Level.INFO, "Timelapsing " + nightSpeed + " ticks until dawn in world " + world.getName());
+                AtomicInteger loopAmount = new AtomicInteger(nightSpeed);
+                int period = 1;
+                double skipPerLoopTemp = (23460D - world.getTime()) / nightSpeed;
+                long skipPerLoop;
+                if (skipPerLoopTemp < 1) {
+                    if (skipPerLoopTemp < 0) {
+                        skipPerLoopTemp = 1;
+                    }
+                    period = (int) (1 / skipPerLoopTemp);
+                    if (period > nightSpeed) {
+                        period = nightSpeed;
+                        loopAmount.set(1);
+                    } else {
+                        loopAmount.set((int) Math.round(nightSpeed / (double) period));
+                    }
+                    skipPerLoop = 1;
+                } else {
+                    skipPerLoop = (long) Math.floor(skipPerLoopTemp);
+                }
                 worldInfo.setTransitionTask(getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
                     if (!isPlayerRequirementSatisfied(world, false)) {
                         getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
@@ -233,15 +252,15 @@ public class BetterBeds extends JavaPlugin implements Listener {
                         return;
                     }
                     long currentTime = world.getTime();
-                    long newTime = currentTime + skipPerTick;
-                    if (newTime >= 24000L) {
+                    long newTime = currentTime + skipPerLoop;
+                    if (loopAmount.decrementAndGet() <= 0) {
                         getServer().getScheduler().cancelTask(worldInfo.getTransitionTask());
                         worldInfo.setTransitionTask(0);
                         setWorldToMorning(world);
-                    } else {
+                    } else if (newTime < 23460) {
                         world.setTime(newTime);
                     }
-                }, 1L, 1L));
+                }, period, period));
             }
             return true;
         } else if (worldInfo.isTransitioning()) {
