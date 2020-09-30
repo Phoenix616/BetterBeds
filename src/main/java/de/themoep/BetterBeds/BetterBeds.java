@@ -193,10 +193,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
 
         int required = (int) Math.ceil(eligible * sleepPercentage);
 
-        if (required < minPlayers) {
-            return Math.min(minPlayers, eligible);
-        }
-        return required;
+        return Math.max(required, minPlayers);
     }
 
     /**
@@ -424,7 +421,7 @@ public class BetterBeds extends JavaPlugin implements Listener {
         float percentage = (float) Math.round(((double) sleeping / required * 100 * 100) / 100);
         replacements.put("percentage", String.format("%.2f", percentage));
 
-        int more = required - sleeping;
+        int more = Math.max(required - sleeping, 0);
         replacements.put("more", String.valueOf(more));
 
         return replacements;
